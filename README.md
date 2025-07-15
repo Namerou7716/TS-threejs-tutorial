@@ -4,6 +4,16 @@
 
 このチュートリアルは、Three.jsとTypeScriptを組み合わせた3D Web開発を、基礎から実践的なレベルまで段階的に学習できるように設計されています。プログラミング初心者でも安心して取り組めるよう、丁寧な説明と豊富なサンプルコードを提供しています。
 
+## 📚 チュートリアル一覧
+
+| セクション | 内容 | 難易度 | 所要時間 |
+|-----------|------|--------|----------|
+| [00. TypeScript基礎知識](./docs/00-typescript-basics.md) | TypeScriptの基本概念と型システム | 初級 | 30-45分 |
+| [01.5. TypeScript × Three.js連携](./docs/01-typescript-threejs-bridge.md) | 両者の連携方法と利点 | 初級 | 20-30分 |
+| [01. 基本シーンの作成](./docs/01-basic-scene.md) | Scene, Camera, Renderer の型安全な実装 | 初級 | 45-60分 |
+| [02. 型安全なオブジェクト作成](./docs/02-typed-geometries.md) | Factory Pattern と高度な型システム | 中級 | 60-90分 |
+| [03. 高度な設計パターン](./docs/03-class-based-scene.md) | 抽象クラス、ミックスイン、デコレータ | 上級 | 90-120分 |
+
 ## 🎯 このチュートリアルの特徴
 
 ### 🚀 初学者に優しい設計
@@ -30,82 +40,17 @@
 1. **開発環境のセットアップ** - Node.js、エディタの準備
 2. **基本知識の確認** - JavaScript、HTML/CSSの基礎
 
-### 🎯 チュートリアル構成
+### 🎯 推奨学習パス
 
-#### 📖 00. TypeScript基礎知識（必須）
-**ファイル:** `examples/00-typescript-basics.html`
+チュートリアルは段階的に学習できるよう設計されています。上記の表の順序で進めることをお勧めします：
 
-**学習内容:**
-- TypeScriptとは何か？なぜ使うのか？
-- 基本的な型システム（number, string, boolean）
-- インターフェースの定義と使用方法
-- クラスの作成と型安全な設計
-- ジェネリクスの基本概念
+1. **[TypeScript基礎](./docs/00-typescript-basics.md)** → TypeScriptの基本概念を理解
+2. **[TypeScript × Three.js連携](./docs/01-typescript-threejs-bridge.md)** → 両技術の組み合わせ方を学習
+3. **[基本シーンの作成](./docs/01-basic-scene.md)** → 実際に3Dシーンを作成
+4. **[型安全なオブジェクト作成](./docs/02-typed-geometries.md)** → 高度な型システムを活用
+5. **[高度な設計パターン](./docs/03-class-based-scene.md)** → エンタープライズレベルの実装
 
-**所要時間:** 30-45分  
-**対象者:** TypeScript初心者
-
----
-
-#### 🔗 01.5. TypeScript × Three.js連携（推奨）
-**ファイル:** `examples/01-5-typescript-threejs-bridge.html`
-
-**学習内容:**
-- Three.jsでTypeScriptを使う理由
-- 必要なパッケージ（three、@types/three）の理解
-- Three.jsオブジェクトの型を理解する
-- 型安全なコード作成パターン
-- 設定オブジェクトの型安全な設計
-
-**所要時間:** 20-30分  
-**対象者:** TypeScript基礎を理解した方
-
----
-
-#### 🚀 01. 基本シーンの作成
-**ファイル:** `examples/01-basic-scene-ts.html`
-
-**学習内容:**
-- Three.jsの基本要素（Scene、Camera、Renderer）
-- TypeScriptでのクラス設計
-- インターフェースを使った設定管理
-- イベントハンドリングとリソース管理
-- 型安全なメソッド設計
-
-**所要時間:** 45-60分  
-**対象者:** TypeScript × Three.js連携を理解した方
-
----
-
-#### 🏭 02. 型安全なオブジェクト作成
-**ファイル:** `examples/02-typed-geometries.html`
-
-**学習内容:**
-- Union Types（合併型）の活用
-- Factory Pattern（ファクトリーパターン）
-- Type Guards（型ガード）
-- Generic Constraints（ジェネリック制約）
-- Conditional Types（条件付き型）
-
-**所要時間:** 60-90分  
-**対象者:** 基本シーンを完了した方
-
----
-
-#### 🏗️ 03. 高度な設計パターン
-**ファイル:** `examples/03-class-based-scene.html`
-
-**学習内容:**
-- 抽象クラスと継承
-- Mixins（ミックスイン）パターン
-- Decorator Pattern（デコレータパターン）
-- Builder Pattern（ビルダーパターン）
-- パフォーマンスモニタリング
-
-**所要時間:** 90-120分  
-**対象者:** 中級者〜上級者
-
----
+各セクションは前のセクションの知識を前提としています。
 
 ## 📦 セットアップ
 
@@ -155,12 +100,12 @@ npm run dev -- --port 3000
 
 ```
 threejs-typescript-tutorial/
-├── examples/                   # 📚 チュートリアルファイル
-│   ├── 00-typescript-basics.html          # TypeScript基礎
-│   ├── 01-5-typescript-threejs-bridge.html # TS×Three.js連携
-│   ├── 01-basic-scene-ts.html             # 基本シーン
-│   ├── 02-typed-geometries.html           # 型安全ファクトリー
-│   └── 03-class-based-scene.html          # 高度な設計パターン
+├── docs/                       # 📚 チュートリアル文書（Markdown形式）
+│   ├── 00-typescript-basics.md         # TypeScript基礎
+│   ├── 01-typescript-threejs-bridge.md # TS×Three.js連携
+│   ├── 01-basic-scene.md              # 基本シーン
+│   ├── 02-typed-geometries.md         # 型安全ファクトリー
+│   └── 03-class-based-scene.md        # 高度な設計パターン
 ├── src/                        # 💻 TypeScriptソースコード
 │   ├── basic-scene.ts          # 基本シーンクラス
 │   ├── typed-geometry-factory.ts # 型安全ファクトリー
@@ -176,12 +121,12 @@ threejs-typescript-tutorial/
 
 ### 📁 ファイル説明
 
-**examples/** - 学習用HTMLファイル
-- **00-typescript-basics.html**: TypeScript基礎知識の学習
-- **01-5-typescript-threejs-bridge.html**: Three.js×TypeScript連携の理解
-- **01-basic-scene-ts.html**: 基本的な3Dシーンの作成
-- **02-typed-geometries.html**: 型安全なオブジェクト作成システム
-- **03-class-based-scene.html**: 高度な設計パターンの実装
+**docs/** - 学習用Markdownファイル（GitHub上で読みやすい形式）
+- **00-typescript-basics.md**: TypeScript基礎知識の学習
+- **01-typescript-threejs-bridge.md**: Three.js×TypeScript連携の理解
+- **01-basic-scene.md**: 基本的な3Dシーンの作成
+- **02-typed-geometries.md**: 型安全なオブジェクト作成システム
+- **03-class-based-scene.md**: 高度な設計パターンの実装
 
 **src/** - TypeScriptソースコード
 - **basic-scene.ts**: 基本シーンクラスの実装
