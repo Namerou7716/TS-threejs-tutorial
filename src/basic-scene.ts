@@ -8,102 +8,58 @@
 
 import * as THREE from 'three';
 
-// --- 型定義 --- 
-// シーンに必要な設定を「インターフェース」として定義します。
-// これにより、設定オブジェクトの形が統一され、型ミスを防ぎます。
-interface SceneConfig {
-  camera: {
-    fov: number;          // 視野角（数値が小さいほどズームイン）
-    aspect: number;       // アスペクト比（通常はブラウザの幅 / 高さ）
-    near: number;         // カメラに映る一番手前の距離
-    far: number;          // カメラに映る一番奥の距離
-    position: THREE.Vector3; // カメラの3D空間における位置
-  };
-  renderer: {
-    antialias: boolean;   // アンチエイリアスを有効にするか（trueで物体の輪郭が滑らかに）
-    alpha: boolean;       // 背景を透過させるか
-  };
-  scene: {
-    background: THREE.Color; // シーンの背景色
-  };
-}
-
-// --- デフォルト設定 ---
-// ユーザーが設定を省略した場合に使用される、標準的な設定値です。
-const defaultConfig: SceneConfig = {
-  camera: {
-    fov: 75,
-    aspect: window.innerWidth / window.innerHeight,
-    near: 0.1,
-    far: 1000,
-    position: new THREE.Vector3(0, 0, 5) // Z軸方向に5の位置から原点を見る
-  },
-  renderer: {
-    antialias: true,
-    alpha: false
-  },
-  scene: {
-    background: new THREE.Color(0x222222) // 暗いグレー
-  }
-};
+// (インターフェースとデフォルト設定は省略)
 
 /**
  * 基本的なThree.jsシーンを管理するクラス。
  * シーン、カメラ、レンダラーといった基本要素と、それらを操作するロジックを一つにまとめます。
  */
 export class BasicScene {
-  // --- publicプロパティ：クラスの外部から参照可能 ---
-  public readonly camera: THREE.PerspectiveCamera; // 3D空間を写すカメラ
-  public readonly scene: THREE.Scene;             // 3Dオブジェクトを配置する舞台
-  public readonly renderer: THREE.WebGLRenderer;    // 実際にブラウザに描画するレンダラー
-  
-  // --- privateプロパティ：クラスの内部でのみ使用 ---
-  private cube: THREE.Mesh; // シーンに表示する立方体オブジェクト
-  private animationId: number | null = null; // アニメーションループのID
+  public readonly camera: THREE.PerspectiveCamera;
+  public readonly scene: THREE.Scene;
+  public readonly renderer: THREE.WebGLRenderer;
+  private cube: THREE.Mesh;
+  private animationId: number | null = null;
 
-  /**
-   * コンストラクタ：`new BasicScene()`でインスタンスが作成されるときに実行される初期化処理です。
-   * @param config ユーザーが指定するカスタム設定（省略可能）
-   */
   constructor(config: Partial<SceneConfig> = {}) {
-    // ユーザー設定とデフォルト設定を安全にマージ（統合）する
     const mergedConfig = this.mergeConfig(defaultConfig, config);
     
     // --- コア要素の初期化 ---
     // 1. カメラを作成
+    // new THREE.PerspectiveCamera(fov, aspect, near, far): 遠近感のあるカメラを作成
+    // fov: 視野角, aspect: アスペクト比, near: 描画開始距離, far: 描画終了距離
     this.camera = new THREE.PerspectiveCamera(
       mergedConfig.camera.fov,
       mergedConfig.camera.aspect,
       mergedConfig.camera.near,
       mergedConfig.camera.far
     );
+    // camera.position.copy(vector): カメラの位置をVector3オブジェクトで設定
     this.camera.position.copy(mergedConfig.camera.position);
 
     // 2. シーンを作成
+    // new THREE.Scene(): 3Dオブジェクトやライトを配置する空間を作成
     this.scene = new THREE.Scene();
+    // scene.background: シーンの背景色をTHREE.Colorで設定
     this.scene.background = mergedConfig.scene.background;
 
     // 3. レンダラーを作成
+    // new THREE.WebGLRenderer({ antialias: ... }): WebGLで3Dシーンを描画するレンダラーを作成
     this.renderer = new THREE.WebGLRenderer(mergedConfig.renderer);
-    this.renderer.setPixelRatio(window.devicePixelRatio); // デバイスの解像度に合わせて綺麗に表示
+    // renderer.setPixelRatio(): デバイスのピクセル比を設定し、高解像度ディスプレイで鮮明に表示
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    // renderer.setSize(): レンダラーの描画サイズをブラウザのウィンドウサイズに設定
     this.renderer.setSize(window.innerWidth, window.innerHeight);
 
     // --- オブジェクトの作成 ---
     this.cube = this.createCube();
-    this.scene.add(this.cube); // 作成したキューブをシーンに追加
+    // scene.add(object): 作成したオブジェクトをシーンに追加。これで描画対象になる。
+    this.scene.add(this.cube);
 
-    // --- イベントリスナーの設定 ---
     this.setupEventListeners();
   }
 
-  /**
-   * ユーザー設定とデフォルト設定をマージするプライベートメソッド。
-   * @param defaultConfig 基本となるデフォルト設定
-   * @param userConfig ユーザーが指定したカスタム設定
-   * @returns マージ後の完全な設定オブジェクト
-   */
   private mergeConfig(defaultConfig: SceneConfig, userConfig: Partial<SceneConfig>): SceneConfig {
-    // スプレッド構文(...)を使って、ネストされたオブジェクトも安全にマージする
     return {
       camera: { ...defaultConfig.camera, ...userConfig.camera },
       renderer: { ...defaultConfig.renderer, ...userConfig.renderer },
@@ -111,88 +67,67 @@ export class BasicScene {
     };
   }
 
-  /**
-   * シーンに表示するキューブを作成するプライベートメソッド。
-   * @returns 作成されたキューブのMeshオブジェクト
-   */
   private createCube(): THREE.Mesh {
-    // Geometry: オブジェクトの「形状」を定義するデータ（例：立方体、球体）
-    const geometry = new THREE.BoxGeometry(1, 1, 1); // 幅1, 高さ1, 奥行き1の立方体の形状
-    // Material: オブジェクトの「材質」を定義するデータ（例：色、質感）
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // 緑色のシンプルな材質
-    // Mesh: GeometryとMaterialを組み合わせた、実際にシーンに表示される3Dオブジェクト
+    // new THREE.BoxGeometry(width, height, depth): 幅、高さ、奥行きを指定して立方体の「形状」を作成
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    // new THREE.MeshBasicMaterial({ color: ... }): 光源の影響を受けない最もシンプルな「材質」を作成
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    // new THREE.Mesh(geometry, material): 「形状」と「材質」を組み合わせて3Dオブジェクト（メッシュ）を作成
     return new THREE.Mesh(geometry, material);
   }
 
-  /**
-   * イベントリスナー（ユーザーの操作やブラウザの状態変化を待つ仕組み）を設定します。
-   */
   private setupEventListeners(): void {
-    // ウィンドウサイズが変更された時に`onWindowResize`メソッドを呼ぶように設定
     window.addEventListener('resize', this.onWindowResize.bind(this));
   }
 
-  /**
-   * ウィンドウリサイズ時に実行される処理です。
-   */
   private onWindowResize(): void {
-    // カメラのアスペクト比を現在のウィンドウサイズに合わせて更新
     this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix(); // カメラのプロパティ変更を適用するために必要
-
-    // レンダラーの描画サイズもウィンドウサイズに合わせる
+    // camera.updateProjectionMatrix(): カメラのプロパティ（視野角、アスペクト比など）を変更した後に、
+    // 変更を反映させるために必ず呼び出す必要がある。
+    this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  /**
-   * アニメーションループ。毎フレームこの中の処理が実行されます。
-   */
   private animate(): void {
-    // `requestAnimationFrame`にこのメソッド自身を渡すことで、ループ処理を実現する
+    // requestAnimationFrame(callback): ブラウザに次の描画タイミングでコールバックを実行するように要求する。
+    // これにより、スムーズなアニメーションループが実現される。
     this.animationId = requestAnimationFrame(this.animate.bind(this));
     
-    // キューブを少しずつ回転させる
+    // object.rotation.x/y/z: オブジェクトの各軸周りの回転角度（ラジアン単位）
     this.cube.rotation.x += 0.01;
     this.cube.rotation.y += 0.01;
 
-    // 現在のシーンとカメラの状態をレンダラーに描画させる
+    // renderer.render(scene, camera): 指定されたシーンを、指定されたカメラの視点から描画する。
+    // この処理が毎フレーム実行されることで、アニメーションとして見える。
     this.renderer.render(this.scene, this.camera);
   }
 
-  /**
-   * シーンを開始し、アニメーションループをスタートさせます。
-   */
   public start(): void {
-    // レンダラーのDOM要素(canvas)がまだHTMLに追加されていなければ追加する
+    // renderer.domElement: レンダラーが描画を行うためのcanvas要素。
+    // これをHTMLのbodyに追加することで、画面に表示される。
     if (!document.body.contains(this.renderer.domElement)) {
       document.body.appendChild(this.renderer.domElement);
     }
-    // アニメーションを開始
     this.animate();
   }
 
-  /**
-   * アニメーションループを停止します。
-   */
   public stop(): void {
     if (this.animationId !== null) {
+      // cancelAnimationFrame(id): requestAnimationFrameで予約されたコールバックをキャンセルする。
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
   }
 
-  /**
-   * シーンを破棄し、メモリを解放します。
-   * アプリケーション終了時などに呼び出すことで、メモリリークを防ぎます。
-   */
   public dispose(): void {
     this.stop();
     
-    // シーン内のオブジェクトが使用しているメモリを解放
+    // scene.traverse(callback): シーン内の全ての子オブジェクトに対してコールバックを実行する。
     this.scene.traverse(object => {
         if (object instanceof THREE.Mesh) {
+            // geometry.dispose(): ジオメトリがGPUに確保したメモリを解放する。
             object.geometry.dispose();
-            // マテリアルが配列の場合も考慮
+            // material.dispose(): マテリアル（と関連するテクスチャなど）が確保したメモリを解放する。
             if (Array.isArray(object.material)) {
                 object.material.forEach(material => material.dispose());
             } else {
@@ -201,32 +136,23 @@ export class BasicScene {
         }
     });
     
-    // レンダラーが使用しているリソースを解放
+    // renderer.dispose(): レンダラーが使用しているWebGLコンテキストとリソースを解放する。
     this.renderer.dispose();
     
-    // HTMLからcanvas要素を削除
     if (this.renderer.domElement.parentNode) {
       this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
     }
     
-    // イベントリスナーを削除
     window.removeEventListener('resize', this.onWindowResize.bind(this));
   }
 
-  // --- ユーティリティメソッド --- 
-
-  /**
-   * キューブの色を外部から変更するためのメソッド。
-   * @param color 新しい色（例: 0xff0000 や 'red'）
-   */
   public setCubeColor(color: THREE.ColorRepresentation): void {
+    // material.color.set(color): マテリアルの色を新しい色に設定する。
     this.cube.material.color.set(color);
   }
 
-  /**
-   * カメラの位置を外部から設定するためのメソッド。
-   */
   public setCameraPosition(x: number, y: number, z: number): void {
+    // object.position.set(x, y, z): オブジェクトの位置を一度に設定する。
     this.camera.position.set(x, y, z);
   }
 }
