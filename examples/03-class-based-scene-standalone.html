@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Three.js TypeScript Tutorial - 03 Class-Based Scene</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				margin: 0;
+				background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+				color: #fff;
+				font-family: 'Fira Code', 'Courier New', monospace;
+				font-size: 12px;
+				line-height: 1.4;
+				overscroll-behavior: none;
+			}
+
+			#info {
+				position: absolute;
+				top: 0;
+				width: 100%;
+				padding: 20px;
+				box-sizing: border-box;
+				text-align: center;
+				z-index: 1;
+				pointer-events: none;
+				background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+			}
+
+			#controls {
+				position: absolute;
+				top: 140px;
+				left: 10px;
+				background: rgba(0, 20, 40, 0.95);
+				padding: 20px;
+				border-radius: 12px;
+				border: 2px solid #00ffff;
+				pointer-events: auto;
+				min-width: 320px;
+				max-height: 70vh;
+				overflow-y: auto;
+				box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+			}
+
+			.control-section {
+				margin-bottom: 20px;
+				padding-bottom: 15px;
+				border-bottom: 1px solid #333;
+			}
+
+			.control-section h3 {
+				margin: 0 0 15px 0;
+				color: #00ffff;
+				font-size: 16px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.control-row {
+				display: flex;
+				align-items: center;
+				margin: 10px 0;
+				gap: 12px;
+			}
+
+			button {
+				background: linear-gradient(135deg, #0066cc, #004499);
+				border: 1px solid #00aaff;
+				color: #fff;
+				padding: 8px 16px;
+				border-radius: 6px;
+				cursor: pointer;
+				font-family: inherit;
+				font-size: 12px;
+				transition: all 0.3s;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+
+			button:hover {
+				background: linear-gradient(135deg, #0088ff, #0066cc);
+				box-shadow: 0 0 15px rgba(0, 170, 255, 0.4);
+				transform: translateY(-1px);
+			}
+
+			button.active {
+				background: linear-gradient(135deg, #00aa00, #008800);
+				border-color: #00ff00;
+				box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+			}
+
+			button.danger {
+				background: linear-gradient(135deg, #cc0066, #990044);
+				border-color: #ff0077;
+			}
+
+			select, input[type="color"] {
+				background: #1a1a1a;
+				border: 1px solid #555;
+				color: #fff;
+				padding: 6px;
+				border-radius: 4px;
+				font-family: inherit;
+				font-size: 12px;
+			}
+
+			input[type="color"] {
+				width: 50px;
+				height: 35px;
+				padding: 0;
+				cursor: pointer;
+				border-radius: 6px;
+			}
+
+			.tutorial-title {
+				font-size: 24px;
+				font-weight: bold;
+				margin-bottom: 8px;
+				color: #00ffff;
+				text-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+				letter-spacing: 1px;
+			}
+
+			.tutorial-description {
+				font-size: 16px;
+				opacity: 0.9;
+				color: #fff;
+				margin-bottom: 10px;
+			}
+
+			.type-info {
+				background: rgba(0, 255, 255, 0.15);
+				padding: 15px;
+				margin: 15px 0;
+				border-radius: 8px;
+				font-size: 13px;
+				border-left: 4px solid #00ffff;
+				text-align: left;
+				line-height: 1.6;
+			}
+
+			.stats {
+				position: absolute;
+				bottom: 10px;
+				left: 10px;
+				background: rgba(0, 0, 0, 0.9);
+				padding: 15px;
+				border-radius: 8px;
+				font-size: 12px;
+				color: #00ff00;
+				font-family: 'Courier New', monospace;
+				border: 1px solid #00ff00;
+				box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+			}
+
+			.grid-layout {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+			}
+
+			.performance-monitor {
+				position: absolute;
+				top: 140px;
+				right: 10px;
+				width: 300px;
+				background: rgba(20, 40, 0, 0.95);
+				border: 2px solid #aaff00;
+				padding: 15px;
+				border-radius: 8px;
+				display: none;
+			}
+
+			.performance-monitor h3 {
+				color: #aaff00;
+				margin-top: 0;
+			}
+
+			.performance-row {
+				display: flex;
+				justify-content: space-between;
+				margin: 5px 0;
+				font-size: 12px;
+			}
+
+			.performance-value {
+				color: #aaff00;
+				font-weight: bold;
+			}
+
+			code {
+				background: rgba(0, 0, 0, 0.5);
+				padding: 2px 6px;
+				border-radius: 3px;
+				color: #00ffff;
+				font-size: 11px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<div class="tutorial-title">Three.js TypeScript Tutorial - 03 Class-Based Scene</div>
+			<div class="tutorial-description">高度なOOP実装：抽象クラス、デコレータパターン、ミックスイン</div>
+			<div class="type-info">
+				<strong>🏗️ Design Patterns:</strong> Abstract Classes, Decorator Pattern, Observer Pattern
+				<br><strong>🔧 TypeScript Features:</strong> <code>abstract</code> classes, <code>interface</code> implementation, inheritance
+				<br><strong>⚡ Advanced Concepts:</strong> Performance Monitoring, Interactive Object Management, Debug Tools
+			</div>
+		</div>
+
+		<div id="controls">
+			<div class="control-section">
+				<h3>🏭 Object Factory</h3>
+				<div class="grid-layout">
+					<div class="control-row">
+						<label>Geometry:</label>
+						<select id="geometryType">
+							<option value="box">Box</option>
+							<option value="sphere">Sphere</option>
+							<option value="cone">Cone</option>
+							<option value="cylinder">Cylinder</option>
+							<option value="torus">Torus</option>
+							<option value="dodecahedron">Dodecahedron</option>
+						</select>
+					</div>
+					<div class="control-row">
+						<label>Material:</label>
+						<select id="materialType">
+							<option value="standard">Standard</option>
+							<option value="phong">Phong</option>
+							<option value="lambert">Lambert</option>
+							<option value="basic">Basic</option>
+							<option value="normal">Normal</option>
+						</select>
+					</div>
+				</div>
+				<div class="control-row">
+					<label>Color:</label>
+					<input type="color" id="objectColor" value="#00ff88">
+					<button id="createObject">Create Object</button>
+				</div>
+			</div>
+
+			<div class="control-section">
+				<h3>🎮 Scene Controls</h3>
+				<div class="grid-layout">
+					<button id="startScene">Start</button>
+					<button id="stopScene">Stop</button>
+					<button id="clearObjects" class="danger">Clear All</button>
+					<button id="removeSelected" class="danger">Remove Selected</button>
+				</div>
+			</div>
+
+			<div class="control-section">
+				<h3>🐛 Debug Tools</h3>
+				<div class="grid-layout">
+					<button id="toggleWireframe">Wireframe</button>
+					<button id="showBoundingBoxes">Bounding Boxes</button>
+					<button id="addAxesHelper">Axes Helper</button>
+					<button id="addGridHelper">Grid Helper</button>
+				</div>
+				<div class="control-row">
+					<label>Performance:</label>
+					<button id="togglePerformance">Monitor</button>
+				</div>
+			</div>
+		</div>
+
+		<div id="performanceMonitor" class="performance-monitor">
+			<h3>⚡ Performance Monitor</h3>
+			<div class="performance-row">
+				<span>FPS:</span>
+				<span id="fps" class="performance-value">0</span>
+			</div>
+			<div class="performance-row">
+				<span>Frame Time:</span>
+				<span id="frameTime" class="performance-value">0ms</span>
+			</div>
+			<div class="performance-row">
+				<span>Objects:</span>
+				<span id="objectCount" class="performance-value">0</span>
+			</div>
+			<div class="performance-row">
+				<span>Triangles:</span>
+				<span id="triangles" class="performance-value">0</span>
+			</div>
+		</div>
+
+		<div class="stats" id="stats">
+			🎯 Click objects to select | 🖱️ Interactive scene ready
+		</div>
+
+		<!-- Three.js CDN -->
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://unpkg.com/three@0.178.0/build/three.module.js"
+				}
+			}
+		</script>
+
+		<script type="module">
+			import * as THREE from 'three';
+
+			/**
+			 * 抽象基底クラス (TypeScript風の実装)
+			 */
+			class AbstractSceneManager {
+				constructor() {
+					this.animationId = null;
+					this.clock = new THREE.Clock();
+				}
+				
+				// 抽象メソッド（サブクラスで実装必須）
+				initializeScene() {
+					throw new Error('initializeScene must be implemented');
+				}
+				
+				setupLighting() {
+					throw new Error('setupLighting must be implemented');
+				}
+				
+				updateScene(deltaTime) {
+					throw new Error('updateScene must be implemented');
+				}
+				
+				// テンプレートメソッドパターン
+				initialize() {
+					this.initializeScene();
+					this.setupLighting();
+					this.setupEventListeners();
+				}
+				
+				setupEventListeners() {
+					window.addEventListener('resize', this.onWindowResize.bind(this));
+				}
+				
+				onWindowResize() {
+					if (this.camera && this.camera.isPerspectiveCamera) {
+						this.camera.aspect = window.innerWidth / window.innerHeight;
+						this.camera.updateProjectionMatrix();
+					}
+					if (this.renderer) {
+						this.renderer.setSize(window.innerWidth, window.innerHeight);
+					}
+				}
+				
+				start() {
+					this.animate();
+				}
+				
+				stop() {
+					if (this.animationId) {
+						cancelAnimationFrame(this.animationId);
+						this.animationId = null;
+					}
+				}
+				
+				animate() {
+					this.animationId = requestAnimationFrame(this.animate.bind(this));
+					const deltaTime = this.clock.getDelta();
+					this.updateScene(deltaTime);
+					if (this.renderer && this.scene && this.camera) {
+						this.renderer.render(this.scene, this.camera);
+					}
+				}
+				
+				dispose() {
+					this.stop();
+					if (this.scene) {
+						this.scene.traverse((child) => {
+							if (child.isMesh) {
+								child.geometry.dispose();
+								if (Array.isArray(child.material)) {
+									child.material.forEach(material => material.dispose());
+								} else {
+									child.material.dispose();
+								}
+							}
+						});
+					}
+					if (this.renderer) {
+						this.renderer.dispose();
+					}
+				}
+			}
+
+			/**
+			 * インタラクション機能のミックスイン
+			 */
+			function addInteractionMixin(BaseClass) {
+				return class extends BaseClass {
+					constructor(...args) {
+						super(...args);
+						this.raycaster = new THREE.Raycaster();
+						this.mouse = new THREE.Vector2();
+						this.eventHandlers = {};
+					}
+					
+					setupInteraction() {
+						if (this.renderer) {
+							this.renderer.domElement.addEventListener('click', (e) => this.handleMouseEvent(e, 'onClick'));
+							this.renderer.domElement.addEventListener('mousemove', (e) => this.handleMouseEvent(e, 'onMouseMove'));
+						}
+					}
+					
+					handleMouseEvent(event, type) {
+						const rect = this.renderer.domElement.getBoundingClientRect();
+						this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+						this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+						
+						this.raycaster.setFromCamera(this.mouse, this.camera);
+						const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+						
+						const handler = this.eventHandlers[type];
+						if (handler && intersects.length > 0) {
+							handler({
+								position: new THREE.Vector2(event.clientX, event.clientY),
+								normalized: this.mouse.clone(),
+								target: intersects[0].object
+							});
+						}
+					}
+					
+					setEventHandler(type, handler) {
+						this.eventHandlers[type] = handler;
+					}
+				};
+			}
+
+			/**
+			 * パフォーマンスモニタリング機能のミックスイン
+			 */
+			function addPerformanceMixin(BaseClass) {
+				return class extends BaseClass {
+					constructor(...args) {
+						super(...args);
+						this.performanceCallback = null;
+						this.frameCount = 0;
+						this.lastTime = performance.now();
+					}
+					
+					setPerformanceCallback(callback) {
+						this.performanceCallback = callback;
+					}
+					
+					updatePerformanceStats() {
+						this.frameCount++;
+						const currentTime = performance.now();
+						
+						if (currentTime - this.lastTime >= 1000) {
+							const stats = {
+								fps: this.frameCount,
+								frameTime: (currentTime - this.lastTime) / this.frameCount,
+								triangles: this.getTriangleCount(),
+								objects: this.getObjectCount(),
+								drawCalls: this.renderer ? this.renderer.info.render.calls : 0
+							};
+							
+							if (this.performanceCallback) {
+								this.performanceCallback(stats);
+							}
+							
+							this.frameCount = 0;
+							this.lastTime = currentTime;
+						}
+					}
+					
+					getTriangleCount() {
+						let count = 0;
+						if (this.scene) {
+							this.scene.traverse((child) => {
+								if (child.isMesh) {
+									const geometry = child.geometry;
+									if (geometry.index) {
+										count += geometry.index.count / 3;
+									} else {
+										count += geometry.attributes.position.count / 3;
+									}
+								}
+							});
+						}
+						return count;
+					}
+					
+					getObjectCount() {
+						let count = 0;
+						if (this.scene) {
+							this.scene.traverse((child) => {
+								if (child.isMesh) count++;
+							});
+						}
+						return count;
+					}
+				};
+			}
+
+			/**
+			 * インタラクティブシーンマネージャー
+			 */
+			const InteractiveSceneManager = addPerformanceMixin(addInteractionMixin(AbstractSceneManager));
+
+			class AdvancedSceneManager extends InteractiveSceneManager {
+				constructor() {
+					super();
+					this.objects = [];
+					this.selectedObject = null;
+				}
+				
+				initializeScene() {
+					// カメラ
+					this.camera = new THREE.PerspectiveCamera(
+						75,
+						window.innerWidth / window.innerHeight,
+						0.1,
+						1000
+					);
+					this.camera.position.set(8, 6, 8);
+					this.camera.lookAt(0, 0, 0);
+					
+					// シーン
+					this.scene = new THREE.Scene();
+					this.scene.background = new THREE.Color(0x0a0a1a);
+					
+					// レンダラー
+					this.renderer = new THREE.WebGLRenderer({ antialias: true });
+					this.renderer.setPixelRatio(window.devicePixelRatio);
+					this.renderer.setSize(window.innerWidth, window.innerHeight);
+					this.renderer.shadowMap.enabled = true;
+					this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+					document.body.appendChild(this.renderer.domElement);
+				}
+				
+				setupLighting() {
+					// 環境光
+					const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+					this.scene.add(ambientLight);
+					
+					// 指向性ライト
+					const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+					directionalLight.position.set(10, 10, 5);
+					directionalLight.castShadow = true;
+					this.scene.add(directionalLight);
+					
+					// ポイントライト
+					const pointLight = new THREE.PointLight(0x00aaff, 0.6, 50);
+					pointLight.position.set(-5, 5, -5);
+					this.scene.add(pointLight);
+				}
+				
+				updateScene(deltaTime) {
+					const time = this.clock.getElapsedTime();
+					
+					// オブジェクトのアニメーション
+					this.objects.forEach((obj, index) => {
+						obj.rotation.x = time * 0.3 + index * 0.1;
+						obj.rotation.y = time * 0.5 + index * 0.15;
+						obj.position.y = Math.sin(time + index) * 0.5;
+					});
+					
+					// パフォーマンス統計の更新
+					this.updatePerformanceStats();
+				}
+				
+				initialize() {
+					super.initialize();
+					this.setupInteraction();
+					
+					// インタラクションハンドラーの設定
+					this.setEventHandler('onClick', (info) => {
+						if (info.target.isMesh) {
+							this.selectObject(info.target);
+						}
+					});
+				}
+				
+				selectObject(mesh) {
+					// 前の選択を解除
+					if (this.selectedObject) {
+						this.highlightObject(this.selectedObject, false);
+					}
+					
+					// 新しい選択
+					this.selectedObject = mesh;
+					this.highlightObject(mesh, true);
+					
+					console.log('Selected object:', mesh.name || 'Unnamed');
+				}
+				
+				highlightObject(mesh, highlight) {
+					const material = mesh.material;
+					if (material.emissive !== undefined) {
+						material.emissive.setHex(highlight ? 0x444444 : 0x000000);
+					}
+				}
+				
+				addObject(mesh) {
+					mesh.castShadow = true;
+					mesh.receiveShadow = true;
+					this.scene.add(mesh);
+					this.objects.push(mesh);
+				}
+				
+				removeSelectedObject() {
+					if (!this.selectedObject) return;
+					
+					this.scene.remove(this.selectedObject);
+					this.selectedObject.geometry.dispose();
+					this.selectedObject.material.dispose();
+					
+					const index = this.objects.indexOf(this.selectedObject);
+					if (index > -1) {
+						this.objects.splice(index, 1);
+					}
+					
+					this.selectedObject = null;
+				}
+				
+				clearAllObjects() {
+					this.objects.forEach(obj => {
+						this.scene.remove(obj);
+						obj.geometry.dispose();
+						obj.material.dispose();
+					});
+					
+					this.objects = [];
+					this.selectedObject = null;
+				}
+				
+				getObjectCount() {
+					return this.objects.length;
+				}
+			}
+
+			/**
+			 * デバッグデコレータ
+			 */
+			class DebugSceneDecorator {
+				constructor(sceneManager) {
+					this.sceneManager = sceneManager;
+				}
+				
+				enableWireframeMode() {
+					this.sceneManager.scene.traverse((child) => {
+						if (child.isMesh) {
+							if (Array.isArray(child.material)) {
+								child.material.forEach(material => {
+									material.wireframe = !material.wireframe;
+								});
+							} else {
+								child.material.wireframe = !child.material.wireframe;
+							}
+						}
+					});
+				}
+				
+				showBoundingBoxes() {
+					this.sceneManager.scene.traverse((child) => {
+						if (child.isMesh) {
+							const box = new THREE.BoxHelper(child, 0xffff00);
+							this.sceneManager.scene.add(box);
+						}
+					});
+				}
+				
+				addAxesHelper(size = 5) {
+					const axesHelper = new THREE.AxesHelper(size);
+					this.sceneManager.scene.add(axesHelper);
+				}
+				
+				addGridHelper(size = 10, divisions = 10) {
+					const gridHelper = new THREE.GridHelper(size, divisions);
+					this.sceneManager.scene.add(gridHelper);
+				}
+			}
+
+			/**
+			 * オブジェクトファクトリー
+			 */
+			class ObjectFactory {
+				static createGeometry(type, config = {}) {
+					switch (type) {
+						case 'box':
+							return new THREE.BoxGeometry(
+								config.width ?? 1,
+								config.height ?? 1,
+								config.depth ?? 1
+							);
+						case 'sphere':
+							return new THREE.SphereGeometry(
+								config.radius ?? 1,
+								config.widthSegments ?? 32,
+								config.heightSegments ?? 16
+							);
+						case 'cone':
+							return new THREE.ConeGeometry(
+								config.radius ?? 1,
+								config.height ?? 1,
+								config.radialSegments ?? 8
+							);
+						case 'cylinder':
+							return new THREE.CylinderGeometry(
+								config.radius ?? 1,
+								config.radius ?? 1,
+								config.height ?? 1,
+								config.radialSegments ?? 8
+							);
+						case 'torus':
+							return new THREE.TorusGeometry(
+								config.radius ?? 1,
+								config.tube ?? 0.4,
+								config.radialSegments ?? 8,
+								config.tubularSegments ?? 6
+							);
+						case 'dodecahedron':
+							return new THREE.DodecahedronGeometry(
+								config.radius ?? 1,
+								config.detail ?? 0
+							);
+						default:
+							return new THREE.BoxGeometry();
+					}
+				}
+				
+				static createMaterial(type, config = {}) {
+					const baseConfig = {
+						color: config.color ?? 0xffffff
+					};
+					
+					switch (type) {
+						case 'basic':
+							return new THREE.MeshBasicMaterial(baseConfig);
+						case 'lambert':
+							return new THREE.MeshLambertMaterial(baseConfig);
+						case 'phong':
+							return new THREE.MeshPhongMaterial({
+								...baseConfig,
+								shininess: config.shininess ?? 30
+							});
+						case 'standard':
+							return new THREE.MeshStandardMaterial({
+								...baseConfig,
+								roughness: config.roughness ?? 1,
+								metalness: config.metalness ?? 0
+							});
+						case 'normal':
+							return new THREE.MeshNormalMaterial();
+						default:
+							return new THREE.MeshBasicMaterial(baseConfig);
+					}
+				}
+				
+				static createMesh(geometryType, materialType, config = {}) {
+					const geometry = this.createGeometry(geometryType, config.geometry);
+					const material = this.createMaterial(materialType, config.material);
+					const mesh = new THREE.Mesh(geometry, material);
+					
+					if (config.transform) {
+						if (config.transform.position) {
+							mesh.position.copy(config.transform.position);
+						}
+						if (config.transform.rotation) {
+							mesh.rotation.copy(config.transform.rotation);
+						}
+						if (config.transform.scale) {
+							mesh.scale.copy(config.transform.scale);
+						}
+					}
+					
+					return mesh;
+				}
+			}
+
+			/**
+			 * アプリケーションクラス
+			 */
+			class AdvancedThreeJSApp {
+				constructor() {
+					this.sceneManager = new AdvancedSceneManager();
+					this.debugDecorator = new DebugSceneDecorator(this.sceneManager);
+					this.performanceMonitoring = false;
+					
+					this.initializeApp();
+				}
+				
+				initializeApp() {
+					this.sceneManager.initialize();
+					this.sceneManager.start();
+					this.setupEventHandlers();
+					
+					console.log('🚀 Advanced TypeScript Three.js App initialized');
+				}
+				
+				setupEventHandlers() {
+					// オブジェクト作成
+					document.getElementById('createObject').addEventListener('click', () => {
+						this.createObject();
+					});
+
+					// シーン制御
+					document.getElementById('startScene').addEventListener('click', () => {
+						this.sceneManager.start();
+					});
+
+					document.getElementById('stopScene').addEventListener('click', () => {
+						this.sceneManager.stop();
+					});
+
+					// オブジェクト管理
+					document.getElementById('clearObjects').addEventListener('click', () => {
+						this.sceneManager.clearAllObjects();
+					});
+
+					document.getElementById('removeSelected').addEventListener('click', () => {
+						this.sceneManager.removeSelectedObject();
+					});
+
+					// デバッグ機能
+					document.getElementById('toggleWireframe').addEventListener('click', () => {
+						this.debugDecorator.enableWireframeMode();
+					});
+
+					document.getElementById('showBoundingBoxes').addEventListener('click', () => {
+						this.debugDecorator.showBoundingBoxes();
+					});
+
+					document.getElementById('addAxesHelper').addEventListener('click', () => {
+						this.debugDecorator.addAxesHelper(5);
+					});
+
+					document.getElementById('addGridHelper').addEventListener('click', () => {
+						this.debugDecorator.addGridHelper(20, 20);
+					});
+
+					// パフォーマンスモニター
+					document.getElementById('togglePerformance').addEventListener('click', () => {
+						this.togglePerformanceMonitoring();
+					});
+				}
+				
+				createObject() {
+					const geometryType = document.getElementById('geometryType').value;
+					const materialType = document.getElementById('materialType').value;
+					const color = document.getElementById('objectColor').value;
+
+					const mesh = ObjectFactory.createMesh(geometryType, materialType, {
+						material: { 
+							color,
+							roughness: materialType === 'standard' ? Math.random() * 0.5 + 0.2 : undefined,
+							metalness: materialType === 'standard' ? Math.random() * 0.8 : undefined
+						},
+						transform: {
+							position: new THREE.Vector3(
+								(Math.random() - 0.5) * 12,
+								(Math.random() - 0.5) * 8,
+								(Math.random() - 0.5) * 12
+							)
+						}
+					});
+					
+					mesh.name = `${geometryType}_${materialType}_${Date.now()}`;
+					this.sceneManager.addObject(mesh);
+					
+					console.log(`✨ Created ${geometryType} with ${materialType} material`);
+				}
+				
+				togglePerformanceMonitoring() {
+					this.performanceMonitoring = !this.performanceMonitoring;
+					const monitor = document.getElementById('performanceMonitor');
+					const button = document.getElementById('togglePerformance');
+
+					if (this.performanceMonitoring) {
+						monitor.style.display = 'block';
+						button.classList.add('active');
+						
+						this.sceneManager.setPerformanceCallback((stats) => {
+							document.getElementById('fps').textContent = stats.fps.toString();
+							document.getElementById('frameTime').textContent = `${stats.frameTime.toFixed(2)}ms`;
+							document.getElementById('objectCount').textContent = stats.objects.toString();
+							document.getElementById('triangles').textContent = Math.floor(stats.triangles).toString();
+						});
+					} else {
+						monitor.style.display = 'none';
+						button.classList.remove('active');
+					}
+				}
+			}
+
+			// アプリケーション開始
+			const app = new AdvancedThreeJSApp();
+
+			// TypeScript開発者向けコンソール情報
+			console.group('🏗️ Advanced TypeScript Architecture');
+			console.log('🎨 Design Patterns Used:');
+			console.log('  • Abstract Base Classes');
+			console.log('  • Mixin pattern for feature composition');
+			console.log('  • Decorator pattern for debug functionality');
+			console.log('  • Factory pattern for object creation');
+			console.log('');
+			console.log('🔧 TypeScript-like Features:');
+			console.log('  • Abstract class enforcement');
+			console.log('  • Interface-like method contracts');
+			console.log('  • Type-safe object factories');
+			console.log('  • Modular architecture patterns');
+			console.groupEnd();
+
+			// クリーンアップ
+			window.addEventListener('beforeunload', () => {
+				app.sceneManager.dispose();
+			});
+		</script>
+
+	</body>
+</html>

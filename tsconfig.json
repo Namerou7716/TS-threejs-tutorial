@@ -1,0 +1,61 @@
+{
+  "compilerOptions": {
+    // TypeScript Compiler Options
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    
+    // 型チェック設定
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    
+    // 出力設定
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    
+    // モジュール解決
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    
+    // 開発体験
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    
+    // Three.js対応
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": false,
+    
+    // パス設定
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/examples/*": ["./examples/*"],
+      "@/types/*": ["./types/*"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "examples/**/*",
+    "types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.js"
+  ],
+  "ts-node": {
+    "esm": true
+  }
+}

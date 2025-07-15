@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Three.js TypeScript Tutorial - 01 Basic Scene</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				margin: 0;
+				background-color: #000;
+				color: #fff;
+				font-family: Monospace;
+				font-size: 13px;
+				line-height: 24px;
+				overscroll-behavior: none;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 10px;
+				box-sizing: border-box;
+				text-align: center;
+				z-index: 1;
+				pointer-events: none;
+			}
+
+			#controls {
+				position: absolute;
+				bottom: 10px;
+				left: 10px;
+				background: rgba(0, 0, 0, 0.7);
+				padding: 15px;
+				border-radius: 8px;
+				pointer-events: auto;
+			}
+
+			#controls button {
+				background: transparent;
+				border: 1px solid #fff;
+				color: #fff;
+				padding: 8px 12px;
+				margin: 4px;
+				border-radius: 4px;
+				cursor: pointer;
+				font-family: monospace;
+			}
+
+			#controls button:hover {
+				background: rgba(255, 255, 255, 0.1);
+			}
+
+			#controls input[type="color"] {
+				width: 40px;
+				height: 30px;
+				border: none;
+				border-radius: 4px;
+				margin: 4px;
+				cursor: pointer;
+			}
+
+			.tutorial-title {
+				font-size: 16px;
+				font-weight: bold;
+				margin-bottom: 5px;
+				color: #ffff00;
+			}
+
+			.tutorial-description {
+				font-size: 12px;
+				opacity: 0.8;
+			}
+
+			.type-info {
+				background: rgba(0, 255, 255, 0.1);
+				padding: 8px;
+				margin: 4px 0;
+				border-radius: 4px;
+				font-size: 11px;
+				border-left: 3px solid #00ffff;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<div class="tutorial-title">Three.js TypeScript Tutorial - 01 Basic Scene</div>
+			<div class="tutorial-description">型安全な基本シーンの実装 - クラスベース設計</div>
+			<div class="type-info">
+				TypeScript Features: 厳密な型チェック、インターフェース、クラス、ジェネリクス
+			</div>
+		</div>
+
+		<div id="controls">
+			<div>🎨 Color: <input type="color" id="colorPicker" value="#00ff00"></div>
+			<button id="resetBtn">Reset Position</button>
+			<button id="stopBtn">Stop Animation</button>
+			<button id="startBtn">Start Animation</button>
+		</div>
+
+		<!-- Three.js CDN -->
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://unpkg.com/three@0.178.0/build/three.module.js"
+				}
+			}
+		</script>
+
+		<script type="module">
+			import * as THREE from 'three';
+
+			/**
+			 * 基本的なThree.jsシーンクラス (TypeScript風の実装)
+			 */
+			class BasicScene {
+				constructor(config = {}) {
+					// デフォルト設定
+					const defaultConfig = {
+						camera: {
+							fov: 75,
+							aspect: window.innerWidth / window.innerHeight,
+							near: 0.1,
+							far: 1000,
+							position: new THREE.Vector3(0, 0, 5)
+						},
+						renderer: {
+							antialias: true,
+							alpha: false
+						},
+						scene: {
+							background: new THREE.Color(0x222222)
+						}
+					};
+
+					const mergedConfig = this.mergeConfig(defaultConfig, config);
+					
+					// カメラの作成
+					this.camera = new THREE.PerspectiveCamera(
+						mergedConfig.camera.fov,
+						mergedConfig.camera.aspect,
+						mergedConfig.camera.near,
+						mergedConfig.camera.far
+					);
+					this.camera.position.copy(mergedConfig.camera.position);
+
+					// シーンの作成
+					this.scene = new THREE.Scene();
+					this.scene.background = mergedConfig.scene.background;
+
+					// レンダラーの作成
+					this.renderer = new THREE.WebGLRenderer(mergedConfig.renderer);
+					this.renderer.setPixelRatio(window.devicePixelRatio);
+					this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+					// キューブの作成
+					this.cube = this.createCube();
+					this.scene.add(this.cube);
+
+					// イベントリスナーの設定
+					this.setupEventListeners();
+					
+					this.animationId = null;
+				}
+
+				/**
+				 * 設定のマージ
+				 */
+				mergeConfig(defaultConfig, userConfig) {
+					return {
+						camera: { ...defaultConfig.camera, ...userConfig.camera },
+						renderer: { ...defaultConfig.renderer, ...userConfig.renderer },
+						scene: { ...defaultConfig.scene, ...userConfig.scene }
+					};
+				}
+
+				/**
+				 * キューブの作成
+				 */
+				createCube() {
+					const geometry = new THREE.BoxGeometry(1, 1, 1);
+					const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+					return new THREE.Mesh(geometry, material);
+				}
+
+				/**
+				 * イベントリスナーの設定
+				 */
+				setupEventListeners() {
+					window.addEventListener('resize', this.onWindowResize.bind(this));
+				}
+
+				/**
+				 * ウィンドウリサイズ処理
+				 */
+				onWindowResize() {
+					this.camera.aspect = window.innerWidth / window.innerHeight;
+					this.camera.updateProjectionMatrix();
+					this.renderer.setSize(window.innerWidth, window.innerHeight);
+				}
+
+				/**
+				 * アニメーションループ
+				 */
+				animate() {
+					this.animationId = requestAnimationFrame(this.animate.bind(this));
+					
+					// キューブの回転
+					this.cube.rotation.x += 0.01;
+					this.cube.rotation.y += 0.01;
+
+					this.renderer.render(this.scene, this.camera);
+				}
+
+				/**
+				 * シーンの開始
+				 */
+				start() {
+					if (!document.body.contains(this.renderer.domElement)) {
+						document.body.appendChild(this.renderer.domElement);
+					}
+					this.animate();
+				}
+
+				/**
+				 * シーンの停止
+				 */
+				stop() {
+					if (this.animationId !== null) {
+						cancelAnimationFrame(this.animationId);
+						this.animationId = null;
+					}
+				}
+
+				/**
+				 * リソースのクリーンアップ
+				 */
+				dispose() {
+					this.stop();
+					
+					// ジオメトリとマテリアルの破棄
+					this.cube.geometry.dispose();
+					this.cube.material.dispose();
+					
+					// レンダラーの破棄
+					this.renderer.dispose();
+					
+					// DOM要素の削除
+					if (document.body.contains(this.renderer.domElement)) {
+						document.body.removeChild(this.renderer.domElement);
+					}
+					
+					// イベントリスナーの削除
+					window.removeEventListener('resize', this.onWindowResize.bind(this));
+				}
+
+				/**
+				 * キューブの色を変更
+				 */
+				setCubeColor(color) {
+					this.cube.material.color.set(color);
+				}
+
+				/**
+				 * カメラ位置の設定
+				 */
+				setCameraPosition(x, y, z) {
+					this.camera.position.set(x, y, z);
+				}
+			}
+
+			// シーン設定
+			const sceneConfig = {
+				camera: {
+					fov: 75,
+					position: new THREE.Vector3(0, 0, 5)
+				},
+				renderer: {
+					antialias: true,
+					alpha: false
+				},
+				scene: {
+					background: new THREE.Color(0x222222)
+				}
+			};
+
+			// シーンインスタンスの作成
+			const scene = new BasicScene(sceneConfig);
+			
+			// シーンの開始
+			scene.start();
+
+			// UI コントロールの設定
+			setupControls(scene);
+
+			/**
+			 * UIコントロールの設定
+			 */
+			function setupControls(sceneInstance) {
+				const colorPicker = document.getElementById('colorPicker');
+				const resetBtn = document.getElementById('resetBtn');
+				const stopBtn = document.getElementById('stopBtn');
+				const startBtn = document.getElementById('startBtn');
+
+				// 色変更
+				colorPicker?.addEventListener('change', (event) => {
+					sceneInstance.setCubeColor(event.target.value);
+				});
+
+				// カメラ位置リセット
+				resetBtn?.addEventListener('click', () => {
+					sceneInstance.setCameraPosition(0, 0, 5);
+				});
+
+				// アニメーション制御
+				stopBtn?.addEventListener('click', () => {
+					sceneInstance.stop();
+				});
+
+				startBtn?.addEventListener('click', () => {
+					sceneInstance.start();
+				});
+			}
+
+			// クリーンアップ（ページ離脱時）
+			window.addEventListener('beforeunload', () => {
+				scene.dispose();
+			});
+
+			// 開発者向け情報をコンソールに出力
+			console.group('🚀 Three.js TypeScript Tutorial');
+			console.log('📦 Scene instance:', scene);
+			console.log('🎥 Camera:', scene.camera);
+			console.log('🎭 Scene:', scene.scene);
+			console.log('🖥️ Renderer:', scene.renderer);
+			console.log('💡 TypeScript-like implementation with type safety concepts');
+			console.groupEnd();
+		</script>
+
+	</body>
+</html>

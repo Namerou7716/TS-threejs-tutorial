@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<title>Three.js TypeScript Tutorial - 00 TypeScript基礎</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				margin: 0;
+				padding: 20px;
+				background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+				color: #fff;
+				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+				font-size: 14px;
+				line-height: 1.6;
+			}
+
+			.container {
+				max-width: 1200px;
+				margin: 0 auto;
+			}
+
+			.tutorial-header {
+				text-align: center;
+				margin-bottom: 40px;
+				padding: 30px;
+				background: rgba(0, 0, 0, 0.3);
+				border-radius: 12px;
+				border: 2px solid #4FC3F7;
+			}
+
+			.tutorial-title {
+				font-size: 32px;
+				font-weight: bold;
+				margin-bottom: 10px;
+				color: #4FC3F7;
+				text-shadow: 0 0 20px rgba(79, 195, 247, 0.3);
+			}
+
+			.tutorial-subtitle {
+				font-size: 16px;
+				opacity: 0.9;
+				margin-bottom: 20px;
+			}
+
+			.learning-objectives {
+				background: rgba(76, 175, 80, 0.1);
+				padding: 20px;
+				border-radius: 8px;
+				border-left: 4px solid #4CAF50;
+				margin: 20px 0;
+			}
+
+			.section {
+				background: rgba(0, 0, 0, 0.2);
+				padding: 25px;
+				margin: 20px 0;
+				border-radius: 8px;
+				border: 1px solid rgba(255, 255, 255, 0.1);
+			}
+
+			.section h2 {
+				color: #4FC3F7;
+				margin-top: 0;
+				font-size: 24px;
+			}
+
+			.section h3 {
+				color: #81C784;
+				margin-top: 20px;
+				font-size: 18px;
+			}
+
+			.code-example {
+				background: #1e1e1e;
+				padding: 20px;
+				border-radius: 8px;
+				margin: 15px 0;
+				font-family: 'Consolas', 'Monaco', monospace;
+				font-size: 14px;
+				overflow-x: auto;
+				border: 1px solid #333;
+			}
+
+			.code-example pre {
+				margin: 0;
+				color: #d4d4d4;
+			}
+
+			.keyword { color: #569cd6; }
+			.string { color: #ce9178; }
+			.comment { color: #6a9955; }
+			.type { color: #4ec9b0; }
+			.number { color: #b5cea8; }
+
+			.interactive-demo {
+				background: rgba(139, 69, 19, 0.1);
+				padding: 20px;
+				border-radius: 8px;
+				border: 1px solid #CD853F;
+				margin: 20px 0;
+			}
+
+			.demo-controls {
+				display: flex;
+				gap: 10px;
+				margin: 10px 0;
+				flex-wrap: wrap;
+			}
+
+			button {
+				background: linear-gradient(135deg, #4FC3F7, #29B6F6);
+				border: none;
+				color: white;
+				padding: 10px 20px;
+				border-radius: 6px;
+				cursor: pointer;
+				font-size: 14px;
+				transition: all 0.3s;
+			}
+
+			button:hover {
+				background: linear-gradient(135deg, #29B6F6, #0288D1);
+				transform: translateY(-2px);
+				box-shadow: 0 4px 12px rgba(79, 195, 247, 0.3);
+			}
+
+			input[type="text"], select {
+				padding: 8px;
+				border: 1px solid #555;
+				border-radius: 4px;
+				background: #2a2a2a;
+				color: white;
+				font-size: 14px;
+			}
+
+			.output {
+				background: #0a0a0a;
+				padding: 15px;
+				border-radius: 8px;
+				margin: 10px 0;
+				font-family: 'Consolas', monospace;
+				color: #00ff00;
+				border: 1px solid #333;
+				min-height: 50px;
+			}
+
+			.progress-bar {
+				width: 100%;
+				height: 6px;
+				background: rgba(255, 255, 255, 0.1);
+				border-radius: 3px;
+				overflow: hidden;
+				margin: 20px 0;
+			}
+
+			.progress-fill {
+				height: 100%;
+				background: linear-gradient(90deg, #4FC3F7, #81C784);
+				width: 0%;
+				transition: width 0.3s ease;
+			}
+
+			.next-step {
+				text-align: center;
+				margin-top: 30px;
+				padding: 20px;
+				background: rgba(76, 175, 80, 0.1);
+				border-radius: 8px;
+				border: 1px solid #4CAF50;
+			}
+
+			.warning {
+				background: rgba(255, 152, 0, 0.1);
+				padding: 15px;
+				border-radius: 8px;
+				border-left: 4px solid #FF9800;
+				margin: 15px 0;
+			}
+
+			.tip {
+				background: rgba(33, 150, 243, 0.1);
+				padding: 15px;
+				border-radius: 8px;
+				border-left: 4px solid #2196F3;
+				margin: 15px 0;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="tutorial-header">
+				<div class="tutorial-title">Three.js TypeScript Tutorial</div>
+				<div class="tutorial-subtitle">00 - TypeScript基礎知識</div>
+				<div class="learning-objectives">
+					<h3>🎯 このチュートリアルで学ぶこと</h3>
+					<ul>
+						<li>TypeScriptの基本的な型システム</li>
+						<li>インターフェースとクラスの定義</li>
+						<li>ジェネリクスの基本概念</li>
+						<li>Three.jsで使用される型の理解</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="progress-bar">
+				<div class="progress-fill" id="progressFill"></div>
+			</div>
+
+			<div class="section">
+				<h2>1. TypeScriptとは？</h2>
+				<p>TypeScriptは、JavaScriptに<strong>型システム</strong>を追加した言語です。Three.jsのような複雑なライブラリを使用する際に、以下のメリットがあります：</p>
+				<ul>
+					<li><strong>型安全性</strong>：コンパイル時にエラーを検出</li>
+					<li><strong>IntelliSense</strong>：エディタでの自動補完</li>
+					<li><strong>リファクタリング</strong>：安全なコード変更</li>
+				</ul>
+
+				<div class="code-example">
+					<pre><code><span class="comment">// JavaScript（従来の方法）</span>
+<span class="keyword">let</span> position = [<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>];
+position.push(<span class="number">1</span>); <span class="comment">// エラーになる可能性があるが、実行時まで分からない</span>
+
+<span class="comment">// TypeScript（型安全な方法）</span>
+<span class="keyword">let</span> position: [<span class="type">number</span>, <span class="type">number</span>, <span class="type">number</span>] = [<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>];
+<span class="comment">// position.push(1); // コンパイルエラー！</span></code></pre>
+				</div>
+
+				<div class="interactive-demo">
+					<h3>🧪 実践デモ：型の違いを体験</h3>
+					<div class="demo-controls">
+						<button onclick="demonstrateTypeError()">型エラーを見る</button>
+						<button onclick="demonstrateTypeSafety()">型安全性を確認</button>
+					</div>
+					<div class="output" id="typeDemo"></div>
+				</div>
+			</div>
+
+			<div class="section">
+				<h2>2. 基本的な型定義</h2>
+				<p>TypeScriptの基本的な型を理解しましょう。Three.jsでよく使用される型を中心に説明します。</p>
+
+				<div class="code-example">
+					<pre><code><span class="comment">// 基本的な型</span>
+<span class="keyword">let</span> count: <span class="type">number</span> = <span class="number">42</span>;
+<span class="keyword">let</span> name: <span class="type">string</span> = <span class="string">"Three.js"</span>;
+<span class="keyword">let</span> isVisible: <span class="type">boolean</span> = <span class="keyword">true</span>;
+
+<span class="comment">// 配列の型</span>
+<span class="keyword">let</span> coordinates: <span class="type">number</span>[] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];
+<span class="keyword">let</span> colors: <span class="type">string</span>[] = [<span class="string">"red"</span>, <span class="string">"green"</span>, <span class="string">"blue"</span>];
+
+<span class="comment">// オブジェクトの型</span>
+<span class="keyword">let</span> vector: { x: <span class="type">number</span>, y: <span class="type">number</span>, z: <span class="type">number</span> } = {
+  x: <span class="number">1</span>,
+  y: <span class="number">2</span>,
+  z: <span class="number">3</span>
+};</code></pre>
+				</div>
+
+				<div class="interactive-demo">
+					<h3>🧪 実践デモ：型定義の練習</h3>
+					<div class="demo-controls">
+						<input type="text" id="numberInput" placeholder="数値を入力">
+						<button onclick="checkNumberType()">数値型をチェック</button>
+						<input type="text" id="stringInput" placeholder="文字列を入力">
+						<button onclick="checkStringType()">文字列型をチェック</button>
+					</div>
+					<div class="output" id="typeCheckDemo"></div>
+				</div>
+			</div>
+
+			<div class="section">
+				<h2>3. インターフェース（Interface）</h2>
+				<p>インターフェースは、オブジェクトの構造を定義する強力な機能です。Three.jsでシーンの設定を型安全に行う際に重要です。</p>
+
+				<div class="code-example">
+					<pre><code><span class="comment">// インターフェースの定義</span>
+<span class="keyword">interface</span> <span class="type">Vector3</span> {
+  x: <span class="type">number</span>;
+  y: <span class="type">number</span>;
+  z: <span class="type">number</span>;
+}
+
+<span class="comment">// カメラの設定インターフェース</span>
+<span class="keyword">interface</span> <span class="type">CameraConfig</span> {
+  fov: <span class="type">number</span>;          <span class="comment">// 視野角</span>
+  aspect: <span class="type">number</span>;       <span class="comment">// アスペクト比</span>
+  near: <span class="type">number</span>;         <span class="comment">// 近クリッピング面</span>
+  far: <span class="type">number</span>;          <span class="comment">// 遠クリッピング面</span>
+  position: <span class="type">Vector3</span>;    <span class="comment">// 位置</span>
+}
+
+<span class="comment">// 使用例</span>
+<span class="keyword">const</span> cameraSettings: <span class="type">CameraConfig</span> = {
+  fov: <span class="number">75</span>,
+  aspect: <span class="number">16</span> / <span class="number">9</span>,
+  near: <span class="number">0.1</span>,
+  far: <span class="number">1000</span>,
+  position: { x: <span class="number">0</span>, y: <span class="number">0</span>, z: <span class="number">5</span> }
+};</code></pre>
+				</div>
+
+				<div class="interactive-demo">
+					<h3>🧪 実践デモ：インターフェースの作成</h3>
+					<div class="demo-controls">
+						<input type="text" id="fovInput" placeholder="視野角 (75)" value="75">
+						<input type="text" id="nearInput" placeholder="近クリッピング面 (0.1)" value="0.1">
+						<input type="text" id="farInput" placeholder="遠クリッピング面 (1000)" value="1000">
+						<button onclick="createCameraConfig()">カメラ設定を作成</button>
+					</div>
+					<div class="output" id="interfaceDemo"></div>
+				</div>
+			</div>
+
+			<div class="section">
+				<h2>4. クラス（Class）</h2>
+				<p>TypeScriptのクラスは、JavaScriptのクラスに型安全性を追加します。Three.jsでシーンを管理する際に重要な概念です。</p>
+
+				<div class="code-example">
+					<pre><code><span class="comment">// TypeScriptクラスの定義</span>
+<span class="keyword">class</span> <span class="type">BasicScene</span> {
+  <span class="comment">// プロパティの型を明示</span>
+  <span class="keyword">private</span> width: <span class="type">number</span>;
+  <span class="keyword">private</span> height: <span class="type">number</span>;
+  <span class="keyword">public</span> isRunning: <span class="type">boolean</span>;
+
+  <span class="comment">// コンストラクタ</span>
+  <span class="keyword">constructor</span>(width: <span class="type">number</span>, height: <span class="type">number</span>) {
+    <span class="keyword">this</span>.width = width;
+    <span class="keyword">this</span>.height = height;
+    <span class="keyword">this</span>.isRunning = <span class="keyword">false</span>;
+  }
+
+  <span class="comment">// メソッドの型を明示</span>
+  <span class="keyword">public</span> start(): <span class="type">void</span> {
+    <span class="keyword">this</span>.isRunning = <span class="keyword">true</span>;
+    console.log(<span class="string">"シーンを開始しました"</span>);
+  }
+
+  <span class="keyword">public</span> getAspectRatio(): <span class="type">number</span> {
+    <span class="keyword">return</span> <span class="keyword">this</span>.width / <span class="keyword">this</span>.height;
+  }
+}</code></pre>
+				</div>
+
+				<div class="interactive-demo">
+					<h3>🧪 実践デモ：クラスの使用</h3>
+					<div class="demo-controls">
+						<input type="text" id="widthInput" placeholder="幅 (800)" value="800">
+						<input type="text" id="heightInput" placeholder="高さ (600)" value="600">
+						<button onclick="createScene()">シーンを作成</button>
+						<button onclick="startScene()">シーンを開始</button>
+					</div>
+					<div class="output" id="classDemo"></div>
+				</div>
+			</div>
+
+			<div class="section">
+				<h2>5. ジェネリクス（Generics）の基礎</h2>
+				<p>ジェネリクスは、型を抽象化して再利用可能なコードを作成する機能です。Three.jsでのオブジェクト管理に役立ちます。</p>
+
+				<div class="code-example">
+					<pre><code><span class="comment">// ジェネリクスの基本例</span>
+<span class="keyword">function</span> createArray&lt;<span class="type">T</span>&gt;(length: <span class="type">number</span>, value: <span class="type">T</span>): <span class="type">T</span>[] {
+  <span class="keyword">return</span> <span class="keyword">new</span> Array(length).fill(value);
+}
+
+<span class="comment">// 使用例</span>
+<span class="keyword">const</span> numbers = createArray&lt;<span class="type">number</span>&gt;(<span class="number">3</span>, <span class="number">0</span>);     <span class="comment">// [0, 0, 0]</span>
+<span class="keyword">const</span> strings = createArray&lt;<span class="type">string</span>&gt;(<span class="number">3</span>, <span class="string">"hi"</span>);  <span class="comment">// ["hi", "hi", "hi"]</span>
+
+<span class="comment">// Three.jsでの応用例</span>
+<span class="keyword">interface</span> <span class="type">GeometryFactory</span>&lt;<span class="type">T</span>&gt; {
+  create(config: <span class="type">T</span>): <span class="type">THREE.BufferGeometry</span>;
+}
+
+<span class="keyword">class</span> <span class="type">BoxGeometryFactory</span> <span class="keyword">implements</span> <span class="type">GeometryFactory</span>&lt;{width: <span class="type">number</span>, height: <span class="type">number</span>, depth: <span class="type">number</span>}&gt; {
+  create(config: {width: <span class="type">number</span>, height: <span class="type">number</span>, depth: <span class="type">number</span>}): <span class="type">THREE.BufferGeometry</span> {
+    <span class="keyword">return</span> <span class="keyword">new</span> THREE.BoxGeometry(config.width, config.height, config.depth);
+  }
+}</code></pre>
+				</div>
+
+				<div class="interactive-demo">
+					<h3>🧪 実践デモ：ジェネリクスの理解</h3>
+					<div class="demo-controls">
+						<select id="typeSelect">
+							<option value="number">数値</option>
+							<option value="string">文字列</option>
+							<option value="boolean">真偽値</option>
+						</select>
+						<input type="text" id="valueInput" placeholder="値を入力">
+						<input type="text" id="lengthInput" placeholder="長さ (3)" value="3">
+						<button onclick="createGenericArray()">配列を作成</button>
+					</div>
+					<div class="output" id="genericDemo"></div>
+				</div>
+			</div>
+
+			<div class="tip">
+				<h3>💡 初学者向けのヒント</h3>
+				<ul>
+					<li>最初は基本的な型（number, string, boolean）から始めましょう</li>
+					<li>インターフェースは設定オブジェクトの定義に便利です</li>
+					<li>クラスはシーンやオブジェクトの管理に適しています</li>
+					<li>ジェネリクスは慣れてから使用しても大丈夫です</li>
+				</ul>
+			</div>
+
+			<div class="warning">
+				<h3>⚠️ よくある間違い</h3>
+				<ul>
+					<li>型注釈を忘れる：<code>let x = 5;</code> より <code>let x: number = 5;</code></li>
+					<li>nullチェックを忘れる：オプショナルチェイニング <code>obj?.property</code> を使用</li>
+					<li>型の強制変換：<code>as</code> キーワードの過度な使用は避ける</li>
+				</ul>
+			</div>
+
+			<div class="next-step">
+				<h2>🚀 次のステップ</h2>
+				<p>TypeScriptの基礎を理解したら、次は実際のThree.jsプロジェクトに進みましょう！</p>
+				<button onclick="goToNextTutorial()">01 - 基本シーンに進む</button>
+			</div>
+		</div>
+
+		<script>
+			// グローバル変数
+			let sceneInstance = null;
+			let currentProgress = 0;
+
+			// プログレスバーの更新
+			function updateProgress(percentage) {
+				currentProgress = percentage;
+				document.getElementById('progressFill').style.width = percentage + '%';
+			}
+
+			// 1. 型エラーのデモンストレーション
+			function demonstrateTypeError() {
+				const output = document.getElementById('typeDemo');
+				output.innerHTML = `
+					<div style="color: #ff6b6b;">
+						<strong>JavaScriptの場合:</strong><br>
+						let position = [0, 0, 0];<br>
+						position.push(1); // ランタイムエラーの可能性<br>
+						結果: [0, 0, 0, 1] // 意図しない4要素配列
+					</div>
+				`;
+				updateProgress(20);
+			}
+
+			function demonstrateTypeSafety() {
+				const output = document.getElementById('typeDemo');
+				output.innerHTML = `
+					<div style="color: #4fc3f7;">
+						<strong>TypeScriptの場合:</strong><br>
+						let position: [number, number, number] = [0, 0, 0];<br>
+						// position.push(1); // コンパイルエラー！<br>
+						結果: 型安全性により事前にエラーを検出
+					</div>
+				`;
+				updateProgress(40);
+			}
+
+			// 2. 型チェックのデモ
+			function checkNumberType() {
+				const input = document.getElementById('numberInput').value;
+				const output = document.getElementById('typeCheckDemo');
+				
+				if (isNaN(Number(input))) {
+					output.innerHTML = `<div style="color: #ff6b6b;">エラー: "${input}" は数値ではありません</div>`;
+				} else {
+					output.innerHTML = `<div style="color: #4fc3f7;">成功: ${input} は有効な数値型です</div>`;
+				}
+				updateProgress(60);
+			}
+
+			function checkStringType() {
+				const input = document.getElementById('stringInput').value;
+				const output = document.getElementById('typeCheckDemo');
+				
+				if (typeof input === 'string' && input.length > 0) {
+					output.innerHTML = `<div style="color: #4fc3f7;">成功: "${input}" は有効な文字列型です（長さ: ${input.length}）</div>`;
+				} else {
+					output.innerHTML = `<div style="color: #ff6b6b;">エラー: 有効な文字列を入力してください</div>`;
+				}
+				updateProgress(60);
+			}
+
+			// 3. インターフェースのデモ
+			function createCameraConfig() {
+				const fov = parseFloat(document.getElementById('fovInput').value) || 75;
+				const near = parseFloat(document.getElementById('nearInput').value) || 0.1;
+				const far = parseFloat(document.getElementById('farInput').value) || 1000;
+				const output = document.getElementById('interfaceDemo');
+				
+				const config = {
+					fov: fov,
+					aspect: 16 / 9,
+					near: near,
+					far: far,
+					position: { x: 0, y: 0, z: 5 }
+				};
+				
+				output.innerHTML = `
+					<div style="color: #4fc3f7;">
+						<strong>作成されたカメラ設定:</strong><br>
+						${JSON.stringify(config, null, 2)}
+					</div>
+				`;
+				updateProgress(80);
+			}
+
+			// 4. クラスのデモ
+			function createScene() {
+				const width = parseInt(document.getElementById('widthInput').value) || 800;
+				const height = parseInt(document.getElementById('heightInput').value) || 600;
+				const output = document.getElementById('classDemo');
+				
+				// BasicSceneクラスの簡単な実装
+				class BasicScene {
+					constructor(width, height) {
+						this.width = width;
+						this.height = height;
+						this.isRunning = false;
+					}
+					
+					start() {
+						this.isRunning = true;
+						return "シーンを開始しました";
+					}
+					
+					getAspectRatio() {
+						return this.width / this.height;
+					}
+				}
+				
+				sceneInstance = new BasicScene(width, height);
+				
+				output.innerHTML = `
+					<div style="color: #4fc3f7;">
+						<strong>シーンが作成されました:</strong><br>
+						幅: ${width}px<br>
+						高さ: ${height}px<br>
+						アスペクト比: ${sceneInstance.getAspectRatio().toFixed(2)}<br>
+						状態: ${sceneInstance.isRunning ? '実行中' : '停止中'}
+					</div>
+				`;
+				updateProgress(90);
+			}
+
+			function startScene() {
+				if (!sceneInstance) {
+					document.getElementById('classDemo').innerHTML = 
+						`<div style="color: #ff6b6b;">エラー: 先にシーンを作成してください</div>`;
+					return;
+				}
+				
+				const message = sceneInstance.start();
+				const output = document.getElementById('classDemo');
+				
+				output.innerHTML = `
+					<div style="color: #4fc3f7;">
+						<strong>${message}</strong><br>
+						状態: ${sceneInstance.isRunning ? '実行中' : '停止中'}
+					</div>
+				`;
+			}
+
+			// 5. ジェネリクスのデモ
+			function createGenericArray() {
+				const type = document.getElementById('typeSelect').value;
+				const value = document.getElementById('valueInput').value;
+				const length = parseInt(document.getElementById('lengthInput').value) || 3;
+				const output = document.getElementById('genericDemo');
+				
+				function createArray(length, value) {
+					return new Array(length).fill(value);
+				}
+				
+				let result;
+				let processedValue;
+				
+				switch(type) {
+					case 'number':
+						processedValue = parseFloat(value) || 0;
+						result = createArray(length, processedValue);
+						break;
+					case 'string':
+						processedValue = value || 'default';
+						result = createArray(length, processedValue);
+						break;
+					case 'boolean':
+						processedValue = value.toLowerCase() === 'true';
+						result = createArray(length, processedValue);
+						break;
+				}
+				
+				output.innerHTML = `
+					<div style="color: #4fc3f7;">
+						<strong>作成された配列:</strong><br>
+						型: ${type}<br>
+						値: ${processedValue}<br>
+						結果: [${result.join(', ')}]
+					</div>
+				`;
+				updateProgress(100);
+			}
+
+			// 次のチュートリアルへ進む
+			function goToNextTutorial() {
+				alert('次のチュートリアル: 01-basic-scene-ts.html を開いてください！');
+			}
+
+			// 初期化
+			document.addEventListener('DOMContentLoaded', function() {
+				console.log('🎓 TypeScript基礎チュートリアルへようこそ！');
+				console.log('各セクションのデモを試して、TypeScriptの基本を学習しましょう。');
+			});
+		</script>
+	</body>
+</html>

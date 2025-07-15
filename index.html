@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Three.js TypeScript Tutorial</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+				color: #fff;
+				font-family: 'Fira Code', 'SF Mono', 'Monaco', 'Consolas', monospace;
+				line-height: 1.6;
+				overflow-x: hidden;
+			}
+
+			.container {
+				max-width: 1200px;
+				margin: 0 auto;
+				padding: 40px 20px;
+			}
+
+			header {
+				text-align: center;
+				margin-bottom: 60px;
+			}
+
+			.logo {
+				font-size: 3.5rem;
+				font-weight: 700;
+				background: linear-gradient(135deg, #00ffff, #0088ff);
+				background-clip: text;
+				-webkit-background-clip: text;
+				-webkit-text-fill-color: transparent;
+				text-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+				margin-bottom: 20px;
+				letter-spacing: 3px;
+			}
+
+			.subtitle {
+				font-size: 1.5rem;
+				color: #888;
+				margin-bottom: 30px;
+			}
+
+			.hero-description {
+				background: rgba(0, 255, 255, 0.1);
+				padding: 30px;
+				border-radius: 15px;
+				border: 2px solid rgba(0, 255, 255, 0.3);
+				margin-bottom: 40px;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.hero-description::before {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: -100%;
+				width: 100%;
+				height: 100%;
+				background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+				animation: shimmer 3s infinite;
+			}
+
+			@keyframes shimmer {
+				0% { left: -100%; }
+				100% { left: 100%; }
+			}
+
+			.hero-description h2 {
+				color: #00ffff;
+				margin-bottom: 20px;
+				font-size: 1.8rem;
+			}
+
+			.feature-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+				gap: 20px;
+				margin: 30px 0;
+			}
+
+			.feature-item {
+				background: rgba(0, 0, 0, 0.4);
+				padding: 20px;
+				border-radius: 10px;
+				border-left: 4px solid #00ffff;
+			}
+
+			.feature-item h3 {
+				color: #00ffff;
+				margin-bottom: 10px;
+			}
+
+			.tutorial-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+				gap: 30px;
+				margin-top: 60px;
+			}
+
+			.tutorial-card {
+				background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(0, 50, 100, 0.3));
+				border: 2px solid transparent;
+				border-radius: 15px;
+				padding: 30px;
+				transition: all 0.4s ease;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.tutorial-card::before {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background: linear-gradient(135deg, #00ffff, #0088ff, #ff00aa);
+				opacity: 0;
+				transition: opacity 0.4s ease;
+				z-index: -1;
+				border-radius: 15px;
+			}
+
+			.tutorial-card:hover::before {
+				opacity: 0.1;
+			}
+
+			.tutorial-card:hover {
+				transform: translateY(-8px);
+				border-color: #00ffff;
+				box-shadow: 0 20px 40px rgba(0, 255, 255, 0.2);
+			}
+
+			.tutorial-number {
+				background: linear-gradient(135deg, #00ffff, #0088ff);
+				color: #000;
+				width: 50px;
+				height: 50px;
+				border-radius: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-weight: bold;
+				font-size: 1.2rem;
+				margin-bottom: 20px;
+			}
+
+			.tutorial-card h3 {
+				color: #00ffff;
+				font-size: 1.4rem;
+				margin-bottom: 15px;
+			}
+
+			.tutorial-card p {
+				color: #ccc;
+				margin-bottom: 20px;
+				line-height: 1.7;
+			}
+
+			.tech-stack {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 8px;
+				margin: 20px 0;
+			}
+
+			.tech-tag {
+				background: rgba(0, 255, 255, 0.2);
+				color: #00ffff;
+				padding: 4px 12px;
+				border-radius: 20px;
+				font-size: 0.85rem;
+				border: 1px solid rgba(0, 255, 255, 0.4);
+			}
+
+			.btn {
+				display: inline-block;
+				background: linear-gradient(135deg, #0066cc, #004499);
+				color: #fff;
+				padding: 12px 24px;
+				text-decoration: none;
+				border-radius: 8px;
+				font-weight: bold;
+				transition: all 0.3s ease;
+				border: 2px solid transparent;
+				text-transform: uppercase;
+				letter-spacing: 1px;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.btn::before {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: -100%;
+				width: 100%;
+				height: 100%;
+				background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+				transition: left 0.5s ease;
+			}
+
+			.btn:hover::before {
+				left: 100%;
+			}
+
+			.btn:hover {
+				background: linear-gradient(135deg, #0088ff, #0066cc);
+				border-color: #00ffff;
+				box-shadow: 0 10px 20px rgba(0, 136, 255, 0.3);
+				transform: translateY(-2px);
+			}
+
+			.setup-section {
+				background: rgba(0, 50, 0, 0.3);
+				border: 2px solid #00aa00;
+				border-radius: 15px;
+				padding: 30px;
+				margin: 40px 0;
+			}
+
+			.setup-section h2 {
+				color: #00ff00;
+				margin-bottom: 20px;
+			}
+
+			.code-block {
+				background: #000;
+				border: 1px solid #333;
+				border-radius: 8px;
+				padding: 20px;
+				margin: 15px 0;
+				position: relative;
+				overflow-x: auto;
+			}
+
+			.code-block::before {
+				content: attr(data-lang);
+				position: absolute;
+				top: 8px;
+				right: 12px;
+				color: #666;
+				font-size: 0.8rem;
+				text-transform: uppercase;
+			}
+
+			.code-block code {
+				color: #00ff00;
+				font-family: 'Fira Code', monospace;
+				font-size: 0.9rem;
+				line-height: 1.4;
+			}
+
+			.requirements {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+				gap: 20px;
+				margin: 20px 0;
+			}
+
+			.requirement {
+				background: rgba(0, 0, 0, 0.5);
+				padding: 15px;
+				border-radius: 8px;
+				border-left: 4px solid #00aa00;
+			}
+
+			.warning {
+				background: rgba(100, 50, 0, 0.3);
+				border: 1px solid #ff8800;
+				border-radius: 8px;
+				padding: 15px;
+				margin: 20px 0;
+			}
+
+			.warning::before {
+				content: '⚠️ ';
+				font-size: 1.2rem;
+			}
+
+			footer {
+				text-align: center;
+				margin-top: 80px;
+				padding: 40px 0;
+				border-top: 1px solid #333;
+				color: #666;
+			}
+
+			.github-link {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				color: #00ffff;
+				text-decoration: none;
+				margin: 20px 0;
+				transition: all 0.3s ease;
+			}
+
+			.github-link:hover {
+				color: #fff;
+				text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+			}
+
+			@media (max-width: 768px) {
+				.logo {
+					font-size: 2.5rem;
+				}
+				
+				.tutorial-grid {
+					grid-template-columns: 1fr;
+				}
+				
+				.container {
+					padding: 20px 15px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<h1 class="logo">Three.js TypeScript</h1>
+				<p class="subtitle">型安全な3D Web開発への完全ガイド</p>
+				
+				<div class="hero-description">
+					<h2>🚀 モダンな3D Web開発を始めよう</h2>
+					<p>Three.jsの公式リポジトリのベストプラクティスに基づいた、本格的なTypeScript開発環境とチュートリアルです。エンタープライズレベルの型安全性、モダンな設計パターン、そして実用的な開発ワークフローを学習できます。</p>
+					
+					<div class="feature-grid">
+						<div class="feature-item">
+							<h3>🏗️ エンタープライズアーキテクチャ</h3>
+							<p>抽象クラス、ミックスイン、デコレータパターンなど、実際のプロジェクトで使える設計パターンを実装</p>
+						</div>
+						<div class="feature-item">
+							<h3>🔧 完全な型安全性</h3>
+							<p>厳密なTypeScript設定で、コンパイル時エラー検出とIntelliSense支援を最大化</p>
+						</div>
+						<div class="feature-item">
+							<h3>⚡ モダンな開発環境</h3>
+							<p>Vite、ESLint、Hot Reload対応の最新開発ツールチェーンで効率的な開発体験</p>
+						</div>
+						<div class="feature-item">
+							<h3>📚 段階的学習</h3>
+							<p>基礎から高度な実装まで、実践的なサンプルコードで学習を支援</p>
+						</div>
+					</div>
+				</div>
+			</header>
+
+			<div class="setup-section">
+				<h2>🛠️ 開発環境のセットアップ</h2>
+				<p>プロフェッショナルなThree.js TypeScript開発環境を構築しましょう。</p>
+				
+				<div class="requirements">
+					<div class="requirement">
+						<h3>📋 必要な環境</h3>
+						<ul>
+							<li>Node.js 18.0+</li>
+							<li>npm または yarn</li>
+							<li>TypeScript 5.0+</li>
+							<li>モダンブラウザ (Chrome 90+)</li>
+						</ul>
+					</div>
+					<div class="requirement">
+						<h3>🔧 推奨ツール</h3>
+						<ul>
+							<li>VS Code + TypeScript拡張</li>
+							<li>ESLint拡張</li>
+							<li>Prettier拡張</li>
+							<li>Git</li>
+						</ul>
+					</div>
+				</div>
+
+				<div class="code-block" data-lang="bash">
+					<code># プロジェクトのクローンとセットアップ
+git clone [repository-url] threejs-typescript-tutorial
+cd threejs-typescript-tutorial
+
+# 依存関係のインストール
+npm install
+
+# 開発サーバーの起動 (Vite Hot Reload)
+npm run dev
+
+# TypeScriptコンパイルチェック
+npm run type-check
+
+# ESLintでコード品質チェック
+npm run lint</code>
+				</div>
+
+				<div class="warning">
+					<strong>注意:</strong> このチュートリアルは、TypeScriptの基本知識（型定義、クラス、インターフェース）を前提としています。JavaScriptからの移行の場合は、TypeScript公式ドキュメントを先に確認することをお勧めします。
+				</div>
+			</div>
+
+			<div class="tutorial-grid">
+				<div class="tutorial-card">
+					<div class="tutorial-number">01</div>
+					<h3>Basic Scene - 型安全な基本実装</h3>
+					<p>Three.jsの基本的な要素（シーン、カメラ、レンダラー）をTypeScriptで型安全に実装します。クラスベース設計、設定インターフェース、適切なリソース管理について学習します。</p>
+					
+					<div class="tech-stack">
+						<span class="tech-tag">TypeScript Classes</span>
+						<span class="tech-tag">Interface Design</span>
+						<span class="tech-tag">Resource Management</span>
+						<span class="tech-tag">Event Handling</span>
+					</div>
+					
+					<a href="examples/01-basic-scene-standalone.html" class="btn">チュートリアルを開く</a>
+				</div>
+
+				<div class="tutorial-card">
+					<div class="tutorial-number">02</div>
+					<h3>Typed Geometries - 高度な型システム</h3>
+					<p>Union Types、Conditional Types、Generic Constraintsを活用した型安全なジオメトリ・マテリアルファクトリーの実装。ファクトリーパターンと型レベルプログラミングを学習します。</p>
+					
+					<div class="tech-stack">
+						<span class="tech-tag">Union Types</span>
+						<span class="tech-tag">Generic Constraints</span>
+						<span class="tech-tag">Factory Pattern</span>
+						<span class="tech-tag">Type Guards</span>
+						<span class="tech-tag">Conditional Types</span>
+					</div>
+					
+					<a href="examples/02-typed-geometries-standalone.html" class="btn">チュートリアルを開く</a>
+				</div>
+
+				<div class="tutorial-card">
+					<div class="tutorial-number">03</div>
+					<h3>Class-Based Scene - エンタープライズアーキテクチャ</h3>
+					<p>抽象クラス、ミックスイン、デコレータパターンを駆使した高度なシーン管理システム。実際のプロダクションで使える設計パターンとアーキテクチャを実装します。</p>
+					
+					<div class="tech-stack">
+						<span class="tech-tag">Abstract Classes</span>
+						<span class="tech-tag">Mixins</span>
+						<span class="tech-tag">Decorator Pattern</span>
+						<span class="tech-tag">Builder Pattern</span>
+						<span class="tech-tag">Performance Monitoring</span>
+					</div>
+					
+					<a href="examples/03-class-based-scene-standalone.html" class="btn">チュートリアルを開く</a>
+				</div>
+
+				<div class="tutorial-card">
+					<div class="tutorial-number">🔧</div>
+					<h3>Development Environment - プロフェッショナル開発環境</h3>
+					<p>Vite、TypeScript、ESLintを組み合わせたモダンな開発環境の構築。Hot Reload、型チェック、コード品質管理など、効率的な開発ワークフローを構築します。</p>
+					
+					<div class="tech-stack">
+						<span class="tech-tag">Vite</span>
+						<span class="tech-tag">TypeScript 5.0</span>
+						<span class="tech-tag">ESLint</span>
+						<span class="tech-tag">Hot Reload</span>
+						<span class="tech-tag">Path Mapping</span>
+					</div>
+					
+					<div class="code-block" data-lang="json">
+						<code>{
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts"
+  }
+}</code>
+					</div>
+				</div>
+			</div>
+
+			<div class="setup-section">
+				<h2>📚 学習パス</h2>
+				<p>効果的な学習のための推奨順序:</p>
+				
+				<ol style="margin: 20px 0; padding-left: 30px; color: #ccc;">
+					<li><strong>開発環境セットアップ</strong> - TypeScript、Vite、ESLint設定の理解</li>
+					<li><strong>Tutorial 01</strong> - TypeScriptでのThree.js基本実装</li>
+					<li><strong>Tutorial 02</strong> - 高度な型システムとファクトリーパターン</li>
+					<li><strong>Tutorial 03</strong> - 企業レベルのアーキテクチャパターン</li>
+					<li><strong>独自プロジェクト</strong> - 学習した知識を活用した実装</li>
+				</ol>
+
+				<div class="warning">
+					<strong>学習のコツ:</strong> 各チュートリアルのソースコードを必ず確認し、TypeScriptの型定義とエラーメッセージに注意を払うことで、型安全性の重要性を理解できます。
+				</div>
+			</div>
+
+			<footer>
+				<a href="https://github.com/example/threejs-typescript-tutorial" class="github-link">
+					<span>📦</span>
+					<span>GitHub リポジトリ</span>
+				</a>
+				<p>Three.js TypeScript Tutorial | MIT License</p>
+				<p>Based on <a href="https://threejs.org" style="color: #00ffff;">Three.js</a> official examples and best practices</p>
+			</footer>
+		</div>
+
+		<script>
+			// ページローディングアニメーション
+			document.addEventListener('DOMContentLoaded', () => {
+				const cards = document.querySelectorAll('.tutorial-card');
+				cards.forEach((card, index) => {
+					card.style.opacity = '0';
+					card.style.transform = 'translateY(30px)';
+					setTimeout(() => {
+						card.style.transition = 'all 0.6s ease';
+						card.style.opacity = '1';
+						card.style.transform = 'translateY(0)';
+					}, index * 200);
+				});
+
+				// コンソールにTypeScript情報を出力
+				console.group('🚀 Three.js TypeScript Tutorial');
+				console.log('📘 TypeScript Features Covered:');
+				console.log('  • Strict Type Checking');
+				console.log('  • Advanced Type System (Union, Conditional, Generic)');
+				console.log('  • Object-Oriented Programming Patterns');
+				console.log('  • Modern Development Environment');
+				console.log('');
+				console.log('🏗️ Architecture Patterns:');
+				console.log('  • Abstract Classes & Inheritance');
+				console.log('  • Mixins & Composition');
+				console.log('  • Factory & Builder Patterns');
+				console.log('  • Decorator Pattern');
+				console.log('');
+				console.log('🔧 Development Tools:');
+				console.log('  • Vite (Fast HMR)');
+				console.log('  • TypeScript 5.0+ (Strict Mode)');
+				console.log('  • ESLint (Code Quality)');
+				console.log('  • Path Mapping & Module Resolution');
+				console.groupEnd();
+			});
+		</script>
+	</body>
+</html>

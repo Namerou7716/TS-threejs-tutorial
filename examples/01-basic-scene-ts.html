@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Three.js TypeScript Tutorial - 01 Basic Scene</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				margin: 0;
+				background-color: #000;
+				color: #fff;
+				font-family: Monospace;
+				font-size: 13px;
+				line-height: 24px;
+				overscroll-behavior: none;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 10px;
+				box-sizing: border-box;
+				text-align: center;
+				z-index: 1;
+				pointer-events: none;
+			}
+
+			#controls {
+				position: absolute;
+				bottom: 10px;
+				left: 10px;
+				background: rgba(0, 0, 0, 0.7);
+				padding: 15px;
+				border-radius: 8px;
+				pointer-events: auto;
+			}
+
+			#controls button {
+				background: transparent;
+				border: 1px solid #fff;
+				color: #fff;
+				padding: 8px 12px;
+				margin: 4px;
+				border-radius: 4px;
+				cursor: pointer;
+				font-family: monospace;
+			}
+
+			#controls button:hover {
+				background: rgba(255, 255, 255, 0.1);
+			}
+
+			#controls input[type="color"] {
+				width: 40px;
+				height: 30px;
+				border: none;
+				border-radius: 4px;
+				margin: 4px;
+				cursor: pointer;
+			}
+
+			.tutorial-title {
+				font-size: 16px;
+				font-weight: bold;
+				margin-bottom: 5px;
+				color: #ffff00;
+			}
+
+			.tutorial-description {
+				font-size: 12px;
+				opacity: 0.8;
+			}
+
+			.type-info {
+				background: rgba(0, 255, 255, 0.1);
+				padding: 8px;
+				margin: 4px 0;
+				border-radius: 4px;
+				font-size: 11px;
+				border-left: 3px solid #00ffff;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<div class="tutorial-title">Three.js TypeScript Tutorial - 01 Basic Scene</div>
+			<div class="tutorial-description">型安全な基本シーンの実装 - クラスベース設計</div>
+			<div class="type-info">
+				TypeScript Features: 厳密な型チェック、インターフェース、クラス、ジェネリクス
+			</div>
+		</div>
+
+		<div id="controls">
+			<div>🎨 Color: <input type="color" id="colorPicker" value="#00ff00"></div>
+			<button id="resetBtn">Reset Position</button>
+			<button id="stopBtn">Stop Animation</button>
+			<button id="startBtn">Start Animation</button>
+		</div>
+
+		<script type="module">
+			// Three.jsライブラリをインポート
+			import * as THREE from 'three';
+			// TypeScriptファイルを直接インポート（Viteがトランスパイル）
+			import { BasicScene } from '../src/basic-scene.ts';
+
+			// 型安全なシーン設定
+			// THREE.Vector3とTHREE.Colorを使用してシーンを初期化
+			const sceneConfig = {
+				camera: {
+					fov: 75,
+					position: new THREE.Vector3(0, 0, 5)
+				},
+				renderer: {
+					antialias: true,
+					alpha: false
+				},
+				scene: {
+					background: new THREE.Color(0x222222)
+				}
+			};
+
+			// シーンインスタンスの作成
+			const scene = new BasicScene(sceneConfig);
+			
+			// シーンの開始
+			scene.start();
+
+			// UI コントロールの設定
+			setupControls(scene);
+
+			/**
+			 * UIコントロールの設定（型安全）
+			 * @param {BasicScene} sceneInstance - BasicSceneのインスタンス
+			 */
+			function setupControls(sceneInstance) {
+				const colorPicker = document.getElementById('colorPicker');
+				const resetBtn = document.getElementById('resetBtn');
+				const stopBtn = document.getElementById('stopBtn');
+				const startBtn = document.getElementById('startBtn');
+
+				// 色変更イベント
+				// オプショナルチェイニング（?.）を使用してnullチェック
+				colorPicker?.addEventListener('change', (event) => {
+					const target = event.target;
+					// 型ガードを使用してHTMLInputElementか確認
+					if (target instanceof HTMLInputElement) {
+						sceneInstance.setCubeColor(target.value);
+					}
+				});
+
+				// カメラ位置リセット
+				resetBtn?.addEventListener('click', () => {
+					sceneInstance.setCameraPosition(0, 0, 5);
+				});
+
+				// アニメーション制御
+				stopBtn?.addEventListener('click', () => {
+					sceneInstance.stop();
+				});
+
+				startBtn?.addEventListener('click', () => {
+					sceneInstance.start();
+				});
+			}
+
+			// クリーンアップ（ページ離脱時）
+			window.addEventListener('beforeunload', () => {
+				scene.dispose();
+			});
+
+			// 開発者向け情報をコンソールに出力
+			// ブラウザのデベロッパーツールでこの情報を確認できます
+			console.group('🚀 Three.js TypeScript Tutorial - 基本シーン');
+			console.log('📦 作成されたシーンインスタンス:', scene);
+			console.log('🎥 カメラオブジェクト:', scene.camera);
+			console.log('🎭 3Dシーン:', scene.scene);
+			console.log('🖥️ レンダラー:', scene.renderer);
+			console.log('💡 TypeScriptの利点: 型安全性、IntelliSense、リファクタリング支援');
+			console.groupEnd();
+		</script>
+
+	</body>
+</html>

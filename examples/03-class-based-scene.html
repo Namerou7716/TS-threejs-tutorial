@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Three.js TypeScript Tutorial - 03 Class-Based Scene</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				margin: 0;
+				background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+				color: #fff;
+				font-family: 'Fira Code', 'Courier New', monospace;
+				font-size: 12px;
+				line-height: 1.4;
+				overscroll-behavior: none;
+			}
+
+			#info {
+				position: absolute;
+				top: 0;
+				width: 100%;
+				padding: 20px;
+				box-sizing: border-box;
+				text-align: center;
+				z-index: 1;
+				pointer-events: none;
+				background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+			}
+
+			#controls {
+				position: absolute;
+				top: 120px;
+				left: 10px;
+				background: rgba(0, 20, 40, 0.95);
+				padding: 20px;
+				border-radius: 12px;
+				border: 2px solid #00ffff;
+				pointer-events: auto;
+				min-width: 320px;
+				max-height: 75vh;
+				overflow-y: auto;
+				box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+			}
+
+			.control-section {
+				margin-bottom: 20px;
+				padding-bottom: 15px;
+				border-bottom: 1px solid #333;
+			}
+
+			.control-section:last-child {
+				border-bottom: none;
+			}
+
+			.control-section h3 {
+				margin: 0 0 15px 0;
+				color: #00ffff;
+				font-size: 16px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.control-row {
+				display: flex;
+				align-items: center;
+				margin: 10px 0;
+				gap: 12px;
+			}
+
+			.control-row label {
+				min-width: 100px;
+				color: #aaa;
+				font-size: 12px;
+			}
+
+			button {
+				background: linear-gradient(135deg, #0066cc, #004499);
+				border: 1px solid #00aaff;
+				color: #fff;
+				padding: 8px 16px;
+				border-radius: 6px;
+				cursor: pointer;
+				font-family: inherit;
+				font-size: 12px;
+				transition: all 0.3s;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+
+			button:hover {
+				background: linear-gradient(135deg, #0088ff, #0066cc);
+				box-shadow: 0 0 15px rgba(0, 170, 255, 0.4);
+				transform: translateY(-1px);
+			}
+
+			button.active {
+				background: linear-gradient(135deg, #00aa00, #008800);
+				border-color: #00ff00;
+				box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+			}
+
+			button.danger {
+				background: linear-gradient(135deg, #cc0066, #990044);
+				border-color: #ff0077;
+			}
+
+			button.danger:hover {
+				background: linear-gradient(135deg, #ff0088, #cc0066);
+				box-shadow: 0 0 15px rgba(255, 0, 119, 0.4);
+			}
+
+			select, input[type="range"], input[type="color"], input[type="number"] {
+				background: #1a1a1a;
+				border: 1px solid #555;
+				color: #fff;
+				padding: 6px;
+				border-radius: 4px;
+				font-family: inherit;
+				font-size: 12px;
+			}
+
+			input[type="range"] {
+				width: 120px;
+				accent-color: #00ffff;
+			}
+
+			input[type="color"] {
+				width: 50px;
+				height: 35px;
+				padding: 0;
+				cursor: pointer;
+				border-radius: 6px;
+			}
+
+			input[type="number"] {
+				width: 80px;
+			}
+
+			.value-display {
+				color: #00ffff;
+				font-weight: bold;
+				min-width: 40px;
+				text-align: right;
+			}
+
+			.tutorial-title {
+				font-size: 24px;
+				font-weight: bold;
+				margin-bottom: 8px;
+				color: #00ffff;
+				text-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+				letter-spacing: 1px;
+			}
+
+			.tutorial-description {
+				font-size: 16px;
+				opacity: 0.9;
+				color: #fff;
+				margin-bottom: 10px;
+			}
+
+			.type-info {
+				background: rgba(0, 255, 255, 0.15);
+				padding: 15px;
+				margin: 15px 0;
+				border-radius: 8px;
+				font-size: 13px;
+				border-left: 4px solid #00ffff;
+				text-align: left;
+				line-height: 1.6;
+			}
+
+			.stats {
+				position: absolute;
+				bottom: 10px;
+				left: 10px;
+				background: rgba(0, 0, 0, 0.9);
+				padding: 15px;
+				border-radius: 8px;
+				font-size: 12px;
+				color: #00ff00;
+				font-family: 'Courier New', monospace;
+				border: 1px solid #00ff00;
+				box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+			}
+
+			.object-list {
+				max-height: 200px;
+				overflow-y: auto;
+				background: #0a0a0a;
+				border: 1px solid #333;
+				border-radius: 6px;
+				padding: 8px;
+			}
+
+			.object-item {
+				padding: 8px;
+				margin: 4px 0;
+				background: #1a1a1a;
+				border-radius: 4px;
+				cursor: pointer;
+				transition: all 0.2s;
+				font-size: 12px;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+
+			.object-item:hover {
+				background: #333;
+				border: 1px solid #555;
+			}
+
+			.object-item.selected {
+				background: linear-gradient(135deg, #004400, #002200);
+				border: 1px solid #00ff00;
+				box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+			}
+
+			.debug-panel {
+				background: rgba(40, 0, 20, 0.95);
+				border: 2px solid #ff00aa;
+			}
+
+			.debug-panel h3 {
+				color: #ff00aa;
+			}
+
+			.performance-monitor {
+				background: rgba(20, 40, 0, 0.95);
+				border: 2px solid #aaff00;
+				position: absolute;
+				top: 120px;
+				right: 10px;
+				width: 300px;
+				padding: 15px;
+				border-radius: 8px;
+			}
+
+			.performance-monitor h3 {
+				color: #aaff00;
+				margin-top: 0;
+			}
+
+			.performance-row {
+				display: flex;
+				justify-content: space-between;
+				margin: 5px 0;
+				font-size: 12px;
+			}
+
+			.performance-value {
+				color: #aaff00;
+				font-weight: bold;
+			}
+
+			code {
+				background: rgba(0, 0, 0, 0.5);
+				padding: 2px 6px;
+				border-radius: 3px;
+				color: #00ffff;
+				font-size: 11px;
+			}
+
+			.grid-layout {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+			}
+
+			.tooltip {
+				position: relative;
+				cursor: help;
+			}
+
+			.tooltip:hover::after {
+				content: attr(data-tooltip);
+				position: absolute;
+				bottom: 125%;
+				left: 50%;
+				transform: translateX(-50%);
+				background: rgba(0, 0, 0, 0.9);
+				color: #fff;
+				padding: 8px;
+				border-radius: 4px;
+				font-size: 11px;
+				white-space: nowrap;
+				z-index: 1000;
+				border: 1px solid #333;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<div class="tutorial-title">Three.js TypeScript Tutorial - 03 Class-Based Scene</div>
+			<div class="tutorial-description">高度なOOP実装：抽象クラス、ミックスイン、デコレータパターン</div>
+			<div class="type-info">
+				<strong>🏗️ Design Patterns:</strong> Abstract Classes, Mixins, Decorator Pattern, Builder Pattern, Factory Pattern
+				<br><strong>🔧 TypeScript Features:</strong> <code>abstract</code> classes, <code>interface</code> mixins, <code>extends</code> inheritance, Generic constraints
+				<br><strong>⚡ Advanced Concepts:</strong> Template Method Pattern, Performance Monitoring, Interactive Object Management
+			</div>
+		</div>
+
+		<div id="controls">
+			<div class="control-section">
+				<h3>🏭 Object Factory</h3>
+				<div class="grid-layout">
+					<div class="control-row">
+						<label>Geometry:</label>
+						<select id="geometryType">
+							<option value="box">Box</option>
+							<option value="sphere">Sphere</option>
+							<option value="cone">Cone</option>
+							<option value="cylinder">Cylinder</option>
+							<option value="torus">Torus</option>
+							<option value="dodecahedron">Dodecahedron</option>
+						</select>
+					</div>
+					<div class="control-row">
+						<label>Material:</label>
+						<select id="materialType">
+							<option value="standard">Standard</option>
+							<option value="phong">Phong</option>
+							<option value="lambert">Lambert</option>
+							<option value="basic">Basic</option>
+							<option value="normal">Normal</option>
+						</select>
+					</div>
+				</div>
+				<div class="control-row">
+					<label>Color:</label>
+					<input type="color" id="objectColor" value="#00ff88">
+					<button id="createObject">Create Object</button>
+				</div>
+			</div>
+
+			<div class="control-section">
+				<h3>🎮 Scene Controls</h3>
+				<div class="grid-layout">
+					<button id="startScene">Start</button>
+					<button id="stopScene">Stop</button>
+					<button id="clearObjects" class="danger">Clear All</button>
+					<button id="removeSelected" class="danger">Remove Selected</button>
+				</div>
+			</div>
+
+			<div class="control-section">
+				<h3>📦 Objects (<span id="objectCount">0</span>)</h3>
+				<div class="object-list" id="objectList">
+					<div style="text-align: center; color: #666; padding: 20px;">
+						No objects created yet
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="debugControls" class="control-section debug-panel" style="position: absolute; bottom: 150px; left: 10px; width: 320px; padding: 15px; border-radius: 8px;">
+			<h3>🐛 Debug Tools</h3>
+			<div class="grid-layout">
+				<button id="toggleWireframe" class="tooltip" data-tooltip="Toggle wireframe mode for all objects">Wireframe</button>
+				<button id="showBoundingBoxes" class="tooltip" data-tooltip="Show bounding boxes around objects">Bounding Boxes</button>
+				<button id="addAxesHelper" class="tooltip" data-tooltip="Add coordinate axes to scene">Axes Helper</button>
+				<button id="addGridHelper" class="tooltip" data-tooltip="Add grid to scene floor">Grid Helper</button>
+			</div>
+			<div class="control-row">
+				<label>Performance:</label>
+				<button id="togglePerformance">Monitor</button>
+			</div>
+		</div>
+
+		<div id="performanceMonitor" class="performance-monitor" style="display: none;">
+			<h3>⚡ Performance Monitor</h3>
+			<div class="performance-row">
+				<span>FPS:</span>
+				<span id="fps" class="performance-value">0</span>
+			</div>
+			<div class="performance-row">
+				<span>Frame Time:</span>
+				<span id="frameTime" class="performance-value">0ms</span>
+			</div>
+			<div class="performance-row">
+				<span>Triangles:</span>
+				<span id="triangles" class="performance-value">0</span>
+			</div>
+			<div class="performance-row">
+				<span>Draw Calls:</span>
+				<span id="drawCalls" class="performance-value">0</span>
+			</div>
+			<div class="performance-row">
+				<span>Memory (Geom):</span>
+				<span id="geometries" class="performance-value">0</span>
+			</div>
+			<div class="performance-row">
+				<span>Memory (Tex):</span>
+				<span id="textures" class="performance-value">0</span>
+			</div>
+		</div>
+
+		<div class="stats" id="stats">
+			🎯 Click objects to select | 🖱️ Interactive scene ready
+		</div>
+
+		<script type="module">
+			import * as THREE from 'three';
+			import { TypedObjectFactory } from '../src/typed-geometry-factory.ts';
+			import { 
+				InteractiveSceneManager, 
+				SceneManagerBuilder, 
+				DebugSceneDecorator 
+			} from '../src/scene-manager.ts';
+
+			/**
+			 * 高度なクラスベースアプリケーション
+			 */
+			class AdvancedThreeJSApp {
+				private sceneManager: InteractiveSceneManager;
+				private debugDecorator: DebugSceneDecorator;
+				private performanceMonitoring = false;
+				private objects: THREE.Mesh[] = [];
+
+				constructor() {
+					this.initializeSceneManager();
+					this.setupUI();
+					this.setupEventHandlers();
+					console.log('🚀 Advanced TypeScript Three.js App initialized');
+				}
+
+				/**
+				 * ビルダーパターンでシーンマネージャーを初期化
+				 */
+				private initializeSceneManager(): void {
+					this.sceneManager = new SceneManagerBuilder()
+						.withShadows(true)
+						.withInteraction(true)
+						.withPerformanceMonitoring(false)
+						.withBackgroundColor(new THREE.Color(0x0a0a1a))
+						.withCameraPosition(new THREE.Vector3(8, 6, 8))
+						.build();
+
+					// デコレータパターンでデバッグ機能を追加
+					this.debugDecorator = new DebugSceneDecorator(this.sceneManager);
+
+					// シーン開始
+					this.sceneManager.start();
+				}
+
+				/**
+				 * UIの初期化
+				 */
+				private setupUI(): void {
+					this.updateObjectList();
+					this.updateStats();
+				}
+
+				/**
+				 * イベントハンドラーの設定
+				 */
+				private setupEventHandlers(): void {
+					// オブジェクト作成
+					document.getElementById('createObject')?.addEventListener('click', () => {
+						this.createObject();
+					});
+
+					// シーン制御
+					document.getElementById('startScene')?.addEventListener('click', () => {
+						this.sceneManager.start();
+						this.updateButtonState('startScene', true);
+						this.updateButtonState('stopScene', false);
+					});
+
+					document.getElementById('stopScene')?.addEventListener('click', () => {
+						this.sceneManager.stop();
+						this.updateButtonState('startScene', false);
+						this.updateButtonState('stopScene', true);
+					});
+
+					// オブジェクト管理
+					document.getElementById('clearObjects')?.addEventListener('click', () => {
+						this.sceneManager.clearAllObjects();
+						this.objects = [];
+						this.updateObjectList();
+						this.updateStats();
+					});
+
+					document.getElementById('removeSelected')?.addEventListener('click', () => {
+						this.sceneManager.removeSelectedObject();
+						this.refreshObjectList();
+						this.updateStats();
+					});
+
+					// デバッグ機能
+					document.getElementById('toggleWireframe')?.addEventListener('click', () => {
+						this.debugDecorator.enableWireframeMode();
+					});
+
+					document.getElementById('showBoundingBoxes')?.addEventListener('click', () => {
+						this.debugDecorator.showBoundingBoxes();
+					});
+
+					document.getElementById('addAxesHelper')?.addEventListener('click', () => {
+						this.debugDecorator.addAxesHelper(5);
+					});
+
+					document.getElementById('addGridHelper')?.addEventListener('click', () => {
+						this.debugDecorator.addGridHelper(20, 20);
+					});
+
+					// パフォーマンスモニター
+					document.getElementById('togglePerformance')?.addEventListener('click', () => {
+						this.togglePerformanceMonitoring();
+					});
+
+					// ウィンドウクローズ時のクリーンアップ
+					window.addEventListener('beforeunload', () => {
+						this.sceneManager.dispose();
+					});
+				}
+
+				/**
+				 * 型安全なオブジェクト作成
+				 */
+				private createObject(): void {
+					const geometryType = (document.getElementById('geometryType') as HTMLSelectElement).value;
+					const materialType = (document.getElementById('materialType') as HTMLSelectElement).value;
+					const color = (document.getElementById('objectColor') as HTMLInputElement).value;
+
+					// ファクトリーパターンでオブジェクト作成
+					const objectConfig = {
+						geometry: { 
+							type: geometryType as any, 
+							config: this.getRandomGeometryConfig(geometryType) 
+						},
+						material: { 
+							type: materialType as any, 
+							config: { 
+								color,
+								roughness: materialType === 'standard' ? Math.random() * 0.5 + 0.2 : undefined,
+								metalness: materialType === 'standard' ? Math.random() * 0.8 : undefined
+							} 
+						},
+						transform: {
+							position: {
+								x: (Math.random() - 0.5) * 12,
+								y: (Math.random() - 0.5) * 8,
+								z: (Math.random() - 0.5) * 12
+							},
+							rotation: {
+								x: Math.random() * Math.PI,
+								y: Math.random() * Math.PI,
+								z: Math.random() * Math.PI
+							},
+							scale: {
+								x: 0.5 + Math.random() * 1.5,
+								y: 0.5 + Math.random() * 1.5,
+								z: 0.5 + Math.random() * 1.5
+							}
+						},
+						name: `${geometryType}_${materialType}_${Date.now()}`
+					};
+
+					const mesh = TypedObjectFactory.createMesh(objectConfig);
+					this.sceneManager.addObject(mesh);
+					this.objects.push(mesh);
+					
+					this.updateObjectList();
+					this.updateStats();
+
+					console.log(`✨ Created ${geometryType} with ${materialType} material`);
+				}
+
+				/**
+				 * ランダムなジオメトリ設定を生成
+				 */
+				private getRandomGeometryConfig(type: string): any {
+					const configs = {
+						box: { width: 0.5 + Math.random() * 2, height: 0.5 + Math.random() * 2, depth: 0.5 + Math.random() * 2 },
+						sphere: { radius: 0.3 + Math.random() * 1.5, widthSegments: 16 + Math.floor(Math.random() * 16) },
+						cone: { radius: 0.3 + Math.random() * 1.2, height: 0.5 + Math.random() * 2.5 },
+						cylinder: { radius: 0.3 + Math.random() * 1.2, height: 0.5 + Math.random() * 2.5 },
+						torus: { radius: 0.5 + Math.random() * 1, tube: 0.1 + Math.random() * 0.4 },
+						dodecahedron: { radius: 0.3 + Math.random() * 1.5 }
+					};
+					return configs[type] || {};
+				}
+
+				/**
+				 * オブジェクトリストの更新
+				 */
+				private updateObjectList(): void {
+					const container = document.getElementById('objectList') as HTMLDivElement;
+					const countElement = document.getElementById('objectCount') as HTMLSpanElement;
+					
+					countElement.textContent = this.sceneManager.getObjectCount().toString();
+					
+					if (this.sceneManager.getObjectCount() === 0) {
+						container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No objects created yet</div>';
+						return;
+					}
+
+					container.innerHTML = '';
+					
+					// Note: この実装では簡略化のため、実際のオブジェクトリストは外部で管理
+					for (let i = 0; i < this.sceneManager.getObjectCount(); i++) {
+						const item = document.createElement('div');
+						item.className = 'object-item';
+						item.innerHTML = `
+							<span>Object ${i + 1}</span>
+							<span style="font-size: 10px; opacity: 0.7;">Click to select</span>
+						`;
+						container.appendChild(item);
+					}
+				}
+
+				/**
+				 * オブジェクトリストの再描画
+				 */
+				private refreshObjectList(): void {
+					// 実際の実装では、sceneManagerから正確なオブジェクト情報を取得
+					this.updateObjectList();
+				}
+
+				/**
+				 * 統計情報の更新
+				 */
+				private updateStats(): void {
+					const stats = document.getElementById('stats') as HTMLDivElement;
+					const selected = this.sceneManager.getSelectedObject();
+					
+					if (selected) {
+						stats.textContent = `🎯 Selected: ${selected.name || 'Unnamed'} | Objects: ${this.sceneManager.getObjectCount()}`;
+					} else {
+						stats.textContent = `🎯 Click objects to select | Objects: ${this.sceneManager.getObjectCount()}`;
+					}
+				}
+
+				/**
+				 * パフォーマンスモニタリングの切り替え
+				 */
+				private togglePerformanceMonitoring(): void {
+					this.performanceMonitoring = !this.performanceMonitoring;
+					const monitor = document.getElementById('performanceMonitor') as HTMLDivElement;
+					const button = document.getElementById('togglePerformance') as HTMLButtonElement;
+
+					if (this.performanceMonitoring) {
+						monitor.style.display = 'block';
+						button.classList.add('active');
+						
+						// パフォーマンスコールバックの設定
+						this.sceneManager.setPerformanceCallback((stats) => {
+							document.getElementById('fps')!.textContent = stats.fps.toString();
+							document.getElementById('frameTime')!.textContent = `${stats.frameTime.toFixed(2)}ms`;
+							document.getElementById('triangles')!.textContent = Math.floor(stats.triangles).toString();
+							document.getElementById('drawCalls')!.textContent = stats.drawCalls.toString();
+							document.getElementById('geometries')!.textContent = stats.memory.geometries.toString();
+							document.getElementById('textures')!.textContent = stats.memory.textures.toString();
+						});
+					} else {
+						monitor.style.display = 'none';
+						button.classList.remove('active');
+					}
+				}
+
+				/**
+				 * ボタン状態の更新
+				 */
+				private updateButtonState(buttonId: string, active: boolean): void {
+					const button = document.getElementById(buttonId) as HTMLButtonElement;
+					if (active) {
+						button.classList.add('active');
+					} else {
+						button.classList.remove('active');
+					}
+				}
+			}
+
+			// アプリケーション開始
+			const app = new AdvancedThreeJSApp();
+
+			// TypeScript開発者向けコンソール情報
+			console.group('🏗️ Advanced TypeScript Architecture');
+			console.log('🎨 Design Patterns Used:');
+			console.log('  • Abstract Base Classes for scene management');
+			console.log('  • Mixin pattern for feature composition');
+			console.log('  • Decorator pattern for debug functionality');
+			console.log('  • Builder pattern for configuration');
+			console.log('  • Factory pattern for object creation');
+			console.log('');
+			console.log('🔧 TypeScript Features:');
+			console.log('  • Strict type checking with --strict');
+			console.log('  • Generic constraints and conditional types');
+			console.log('  • Interface segregation and composition');
+			console.log('  • Abstract classes and method overriding');
+			console.log('  • Mixins with interface declarations');
+			console.groupEnd();
+
+			// デバッグ用: グローバルアクセス（本番環境では削除推奨）
+			// ブラウザのコンソールで app.sceneManager などにアクセス可能
+			if (typeof window !== 'undefined') {
+				window.app = app;
+			}
+		</script>
+
+	</body>
+</html>
