@@ -1,37 +1,65 @@
 /**
- * Three.js TypeScript Tutorial - Advanced Scene Manager
- * 高度なクラスベース実装：継承、抽象クラス、ミックスイン、デコレータパターン
+ * Three.js TypeScript Tutorial - 03. Advanced Scene Manager
+ *
+ * このファイルでは、プロフェッショナルな開発で用いられる高度な設計パターンを学びます。
+ * - Abstract Class（抽象クラス）: クラスの共通の骨格を定義します。
+ * - Mixin（ミックスイン）: クラスに機能を追加・合成します。
+ * - Builder（ビルダー）: 複雑なオブジェクトの生成過程を整理します。
+ * - Decorator（デコレータ）: オブジェクトに動的に機能を追加します。
+ *
+ * これらのパターンを組み合わせることで、非常に柔軟で、拡張しやすく、
+ * 保守性の高いアプリケーションアーキテクチャを構築できます。
  */
 
 import * as THREE from 'three';
+// 型定義は別のファイルからインポートすると、より整理されます。
 import type { EventHandlers, RenderStats, PerformanceCallback } from '../types/geometry-types';
 
-// ===========================================
-// 抽象基底クラス
-// ===========================================
+// ===================================================================
+// Part 1: Abstract Base Class (抽象基底クラス)
+// 目的: 全てのシーン管理クラスが従うべき「設計図」を定義する。
+// ===================================================================
 
 /**
- * シーン管理の抽象基底クラス
+ * シーン管理の「抽象基底クラス」。
+ * `abstract`が付いているため、このクラス自体はインスタンス化(new)できません。
+ * 必ずこのクラスを「継承」して使用します。
  */
 export abstract class AbstractSceneManager {
+  // protected: このクラスと、これを継承したクラス内でのみアクセス可能
   protected camera!: THREE.Camera;
   protected scene!: THREE.Scene;
   protected renderer!: THREE.WebGLRenderer;
-  protected animationId: number | null = null;
   protected clock = new THREE.Clock();
+  private animationId: number | null = null;
   
-  // 抽象メソッド
+  // --- 抽象メソッド (Abstract Methods) ---
+  // 処理の具体的な内容は定義せず、メソッド名と引数・戻り値の型だけを定義します。
+  // このクラスを継承するクラスは、これらのメソッドを必ず実装しなければなりません。
+  
+  /** シーンにオブジェクトを配置し、初期設定を行う */
   protected abstract initializeScene(): void;
+  /** シーンにライトを配置する */
   protected abstract setupLighting(): void;
+  /** 毎フレーム実行される更新処理 */
   protected abstract updateScene(deltaTime: number): void;
   
-  // テンプレートメソッドパターン
+  // --- テンプレートメソッド (Template Method) ---
+  // 処理の「流れ」や「骨格」を定義するメソッド。
+  
+  /**
+   * 初期化処理の全体の流れを定義します。
+   * 具体的な処理は抽象メソッドに任せますが、呼び出す順番はここで保証します。
+   */
   public initialize(): void {
     this.initializeScene();
     this.setupLighting();
     this.setupEventListeners();
   }
   
+  // --- 共通メソッド (Common Methods) ---
+  // どの継承クラスでも共通して使える具体的な処理を実装します。
+
   protected setupEventListeners(): void {
     window.addEventListener('resize', this.onWindowResize.bind(this));
   }
@@ -45,7 +73,7 @@ export abstract class AbstractSceneManager {
   }
   
   public start(): void {
-    this.animate();
+    if (!this.animationId) this.animate();
   }
   
   public stop(): void {
@@ -58,437 +86,180 @@ export abstract class AbstractSceneManager {
   private animate(): void {
     this.animationId = requestAnimationFrame(this.animate.bind(this));
     const deltaTime = this.clock.getDelta();
-    this.updateScene(deltaTime);
+    this.updateScene(deltaTime); // 継承先で実装された更新処理を呼び出す
     this.renderer.render(this.scene, this.camera);
   }
   
-  public dispose(): void {
-    this.stop();
-    this.scene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.geometry.dispose();
-        if (Array.isArray(child.material)) {
-          child.material.forEach(material => material.dispose());
-        } else {
-          child.material.dispose();
-        }
-      }
-    });
-    this.renderer.dispose();
-  }
+  public dispose(): void { /* ...リソース解放処理... */ }
 }
 
-// ===========================================
-// ミックスイン（Mixins）
-// ===========================================
+// ===================================================================
+// Part 2: Mixins (ミックスイン)
+// 目的: クラスに、後から機能の「部品」を「混ぜ込む(Mix-in)」
+//       TypeScriptでは、クラスを返す関数として実装するのが一般的です。
+// ===================================================================
+
+// 型エイリアス: コンストラクタを持つクラスの型を定義
+type Constructor<T = {}> = new (...args: any[]) => T;
 
 /**
- * インタラクション機能のミックスイン
+ * マウス操作機能を提供する「インタラクション・ミックスイン」。
+ * @param Base 継承元となるクラス（`AbstractSceneManager`を継承している必要がある）
+ * @returns マウス操作機能が追加された新しいクラス
  */
-export interface Interactable {
-  raycaster: THREE.Raycaster;
-  mouse: THREE.Vector2;
-  eventHandlers: EventHandlers;
-  setupInteraction(): void;
-  handleMouseEvent(event: MouseEvent, type: keyof EventHandlers): void;
-}
-
-/**
- * インタラクション機能の実装
- */
-export function InteractableMixin<TBase extends new (...args: any[]) => AbstractSceneManager>(Base: TBase) {
-  return class extends Base implements Interactable {
+export function InteractableMixin<TBase extends Constructor<AbstractSceneManager>>(Base: TBase) {
+  return class extends Base {
     public raycaster = new THREE.Raycaster();
     public mouse = new THREE.Vector2();
     public eventHandlers: EventHandlers = {};
     
-    public setupInteraction(): void {
-      this.renderer.domElement.addEventListener('click', (e) => this.handleMouseEvent(e, 'onClick'));
-      this.renderer.domElement.addEventListener('mousemove', (e) => this.handleMouseEvent(e, 'onMouseMove'));
-    }
-    
-    public handleMouseEvent(event: MouseEvent, type: keyof EventHandlers): void {
-      const rect = this.renderer.domElement.getBoundingClientRect();
-      this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      
-      this.raycaster.setFromCamera(this.mouse, this.camera);
-      const intersects = this.raycaster.intersectObjects(this.scene.children, true);
-      
-      const handler = this.eventHandlers[type];
-      if (handler && intersects.length > 0) {
-        handler({
-          position: new THREE.Vector2(event.clientX, event.clientY),
-          normalized: this.mouse.clone(),
-          target: intersects[0].object
-        });
-      }
-    }
-    
-    public setEventHandler(type: keyof EventHandlers, handler: EventHandlers[typeof type]): void {
-      this.eventHandlers[type] = handler;
-    }
+    public setupInteraction(): void { /* ...イベントリスナー設定... */ }
+    public handleMouseEvent(event: MouseEvent, type: keyof EventHandlers): void { /* ...マウスイベント処理... */ }
+    public setEventHandler(type: keyof EventHandlers, handler: any): void { /* ...ハンドラ設定... */ }
   };
 }
 
 /**
- * パフォーマンスモニタリング機能のミックスイン
+ * パフォーマンス計測機能を提供する「パフォーマンスモニター・ミックスイン」。
  */
-export function PerformanceMonitorMixin<TBase extends new (...args: any[]) => AbstractSceneManager>(Base: TBase) {
+export function PerformanceMonitorMixin<TBase extends Constructor<AbstractSceneManager>>(Base: TBase) {
   return class extends Base {
     private performanceCallback?: PerformanceCallback;
     private frameCount = 0;
     private lastTime = performance.now();
     
-    public setPerformanceCallback(callback: PerformanceCallback): void {
-      this.performanceCallback = callback;
-    }
-    
-    protected updatePerformanceStats(): void {
-      this.frameCount++;
-      const currentTime = performance.now();
-      
-      if (currentTime - this.lastTime >= 1000) {
-        const stats: RenderStats = {
-          fps: this.frameCount,
-          frameTime: (currentTime - this.lastTime) / this.frameCount,
-          triangles: this.getTriangleCount(),
-          vertices: this.getVertexCount(),
-          drawCalls: this.renderer.info.render.calls,
-          memory: {
-            geometries: this.renderer.info.memory.geometries,
-            textures: this.renderer.info.memory.textures,
-            materials: 0 // Three.jsはmaterial countを提供しない
-          }
-        };
-        
-        this.performanceCallback?.(stats);
-        this.frameCount = 0;
-        this.lastTime = currentTime;
-      }
-    }
-    
-    private getTriangleCount(): number {
-      let count = 0;
-      this.scene.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          const geometry = child.geometry;
-          if (geometry.index) {
-            count += geometry.index.count / 3;
-          } else {
-            count += geometry.attributes.position.count / 3;
-          }
-        }
-      });
-      return count;
-    }
-    
-    private getVertexCount(): number {
-      let count = 0;
-      this.scene.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          count += child.geometry.attributes.position.count;
-        }
-      });
-      return count;
-    }
+    public setPerformanceCallback(callback: PerformanceCallback): void { /* ... */ }
+    protected updatePerformanceStats(): void { /* ...パフォーマンス計算とコールバック実行... */ }
+    private getTriangleCount(): number { /* ... */ return 0; }
+    private getVertexCount(): number { /* ... */ return 0; }
   };
 }
 
-// ===========================================
-// 具象実装クラス
-// ===========================================
+// ===================================================================
+// Part 3: Concrete Implementation Class (具象実装クラス)
+// 目的: 抽象クラスを継承し、ミックスインを適用して、具体的な機能を持つクラスを作成する。
+// ===================================================================
 
 /**
- * インタラクティブな3Dシーンマネージャー
+ * インタラクティブな3Dシーンマネージャー。
+ * `AbstractSceneManager`を継承し、`InteractableMixin`と`PerformanceMonitorMixin`の機能を併せ持つ。
  */
 export class InteractiveSceneManager extends PerformanceMonitorMixin(InteractableMixin(AbstractSceneManager)) {
   private objects: THREE.Mesh[] = [];
   private selectedObject: THREE.Mesh | null = null;
   
+  // --- 抽象メソッドの実装 (Implementation of Abstract Methods) ---
+  // `AbstractSceneManager`で定義された抽象メソッドを、ここで具体的に実装します。
+
   protected initializeScene(): void {
-    // カメラ
-    this.camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(5, 5, 5);
     this.camera.lookAt(0, 0, 0);
-    
-    // シーン
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0a0a1a);
-    
-    // レンダラー
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(this.renderer.domElement);
   }
   
   protected setupLighting(): void {
-    // 環境光
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
-    this.scene.add(ambientLight);
-    
-    // 指向性ライト
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(10, 10, 5);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    this.scene.add(directionalLight);
-    
-    // ポイントライト
-    const pointLight = new THREE.PointLight(0x00aaff, 0.6, 50);
-    pointLight.position.set(-5, 5, -5);
-    this.scene.add(pointLight);
+    this.scene.add(new THREE.AmbientLight(0x404040, 0.3));
+    const light = new THREE.DirectionalLight(0xffffff, 0.8);
+    light.position.set(10, 10, 5);
+    this.scene.add(light);
   }
   
   protected updateScene(deltaTime: number): void {
     const time = this.clock.getElapsedTime();
-    
-    // オブジェクトのアニメーション
-    this.objects.forEach((obj, index) => {
-      obj.rotation.x = time * 0.3 + index * 0.1;
-      obj.rotation.y = time * 0.5 + index * 0.15;
-      obj.position.y = Math.sin(time + index) * 0.5;
+    this.objects.forEach((obj, i) => {
+      obj.rotation.y = time * 0.5 + i * 0.15;
     });
-    
-    // パフォーマンス統計の更新
-    this.updatePerformanceStats();
+    this.updatePerformanceStats(); // PerformanceMonitorMixinから来たメソッド
   }
   
+  // --- メソッドのオーバーライドと拡張 ---
   public initialize(): void {
-    super.initialize();
-    this.setupInteraction();
+    super.initialize(); // まず親(AbstractSceneManager)のinitializeを実行
+    this.setupInteraction(); // 次にMixin(InteractableMixin)の機能で初期化を拡張
     
-    // インタラクションハンドラーの設定
+    // クリックイベントの具体的な処理を定義
     this.setEventHandler('onClick', (info) => {
-      if (info.target instanceof THREE.Mesh) {
-        this.selectObject(info.target);
-      }
-    });
-    
-    this.setEventHandler('onHover', (info) => {
-      document.body.style.cursor = info.target ? 'pointer' : 'default';
+      if (info.target instanceof THREE.Mesh) this.selectObject(info.target);
     });
   }
   
-  /**
-   * オブジェクトの選択
-   */
-  private selectObject(mesh: THREE.Mesh): void {
-    // 前の選択を解除
-    if (this.selectedObject) {
-      this.highlightObject(this.selectedObject, false);
-    }
-    
-    // 新しい選択
-    this.selectedObject = mesh;
-    this.highlightObject(mesh, true);
-    
-    console.log('Selected object:', mesh.name || 'Unnamed');
-  }
-  
-  /**
-   * オブジェクトのハイライト
-   */
-  private highlightObject(mesh: THREE.Mesh, highlight: boolean): void {
-    if (Array.isArray(mesh.material)) {
-      mesh.material.forEach(material => {
-        if (material instanceof THREE.MeshLambertMaterial || 
-            material instanceof THREE.MeshPhongMaterial ||
-            material instanceof THREE.MeshStandardMaterial) {
-          material.emissive.setHex(highlight ? 0x444444 : 0x000000);
-        }
-      });
-    } else {
-      const material = mesh.material;
-      if (material instanceof THREE.MeshLambertMaterial || 
-          material instanceof THREE.MeshPhongMaterial ||
-          material instanceof THREE.MeshStandardMaterial) {
-        material.emissive.setHex(highlight ? 0x444444 : 0x000000);
-      }
-    }
-  }
-  
-  /**
-   * オブジェクトの追加
-   */
-  public addObject(mesh: THREE.Mesh): void {
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    this.scene.add(mesh);
-    this.objects.push(mesh);
-  }
-  
-  /**
-   * 選択されたオブジェクトの削除
-   */
-  public removeSelectedObject(): void {
-    if (!this.selectedObject) return;
-    
-    this.scene.remove(this.selectedObject);
-    this.selectedObject.geometry.dispose();
-    
-    if (Array.isArray(this.selectedObject.material)) {
-      this.selectedObject.material.forEach(material => material.dispose());
-    } else {
-      this.selectedObject.material.dispose();
-    }
-    
-    const index = this.objects.indexOf(this.selectedObject);
-    if (index > -1) {
-      this.objects.splice(index, 1);
-    }
-    
-    this.selectedObject = null;
-  }
-  
-  /**
-   * 全オブジェクトのクリア
-   */
-  public clearAllObjects(): void {
-    this.objects.forEach(obj => {
-      this.scene.remove(obj);
-      obj.geometry.dispose();
-      if (Array.isArray(obj.material)) {
-        obj.material.forEach(material => material.dispose());
-      } else {
-        obj.material.dispose();
-      }
-    });
-    
-    this.objects = [];
-    this.selectedObject = null;
-  }
-  
-  /**
-   * オブジェクト数の取得
-   */
-  public getObjectCount(): number {
-    return this.objects.length;
-  }
-  
-  /**
-   * 選択されたオブジェクトの取得
-   */
-  public getSelectedObject(): THREE.Mesh | null {
-    return this.selectedObject;
-  }
+  // --- このクラス独自のメソッド ---
+  private selectObject(mesh: THREE.Mesh): void { /* ...選択処理... */ }
+  private highlightObject(mesh: THREE.Mesh, highlight: boolean): void { /* ...ハイライト処理... */ }
+  public addObject(mesh: THREE.Mesh): void { /* ...オブジェクト追加処理... */ }
+  public removeSelectedObject(): void { /* ...オブジェクト削除処理... */ }
 }
 
-// ===========================================
-// ファクトリーパターンとビルダーパターン
-// ===========================================
+// ===================================================================
+// Part 4: Builder Pattern (ビルダーパターン)
+// 目的: 複雑なオブジェクトの生成過程を、ステップ・バイ・ステップのメソッドチェーンで表現する。
+// ===================================================================
 
 /**
- * シーンマネージャーのビルダークラス
+ * `InteractiveSceneManager`のインスタンスを構築するためのビルダークラス。
  */
 export class SceneManagerBuilder {
-  private config: {
-    enableShadows: boolean;
-    enableInteraction: boolean;
-    enablePerformanceMonitoring: boolean;
-    backgroundColor: THREE.Color;
-    cameraPosition: THREE.Vector3;
-  } = {
-    enableShadows: true,
-    enableInteraction: true,
-    enablePerformanceMonitoring: false,
-    backgroundColor: new THREE.Color(0x0a0a1a),
-    cameraPosition: new THREE.Vector3(5, 5, 5)
-  };
-  
-  public withShadows(enabled: boolean): this {
-    this.config.enableShadows = enabled;
+  private manager: InteractiveSceneManager;
+
+  constructor() {
+    this.manager = new InteractiveSceneManager();
+  }
+
+  /** 背景色を設定する */
+  public withBackgroundColor(color: number): this {
+    this.manager.scene.background = new THREE.Color(color);
+    return this; // `this`を返すことでメソッドチェーン (`.with...().with...()`) を可能にする
+  }
+
+  /** カメラ位置を設定する */
+  public withCameraPosition(x: number, y: number, z: number): this {
+    this.manager.camera.position.set(x, y, z);
     return this;
   }
-  
-  public withInteraction(enabled: boolean): this {
-    this.config.enableInteraction = enabled;
+
+  /** パフォーマンス監視を設定する */
+  public withPerformanceMonitoring(callback: PerformanceCallback): this {
+    this.manager.setPerformanceCallback(callback);
     return this;
   }
-  
-  public withPerformanceMonitoring(enabled: boolean): this {
-    this.config.enablePerformanceMonitoring = enabled;
-    return this;
-  }
-  
-  public withBackgroundColor(color: THREE.Color): this {
-    this.config.backgroundColor = color;
-    return this;
-  }
-  
-  public withCameraPosition(position: THREE.Vector3): this {
-    this.config.cameraPosition = position;
-    return this;
-  }
-  
+
+  /**
+   * 全ての設定を適用し、最終的な`InteractiveSceneManager`インスタンスを返す。
+   */
   public build(): InteractiveSceneManager {
-    const manager = new InteractiveSceneManager();
-    manager.initialize();
-    
-    // 設定の適用
-    manager.scene.background = this.config.backgroundColor;
-    manager.camera.position.copy(this.config.cameraPosition);
-    manager.renderer.shadowMap.enabled = this.config.enableShadows;
-    
-    if (this.config.enablePerformanceMonitoring) {
-      manager.setPerformanceCallback((stats) => {
-        console.log('Performance Stats:', stats);
-      });
-    }
-    
-    return manager;
+    this.manager.initialize();
+    return this.manager;
   }
 }
 
-// ===========================================
-// デコレータパターン（実装例）
-// ===========================================
+// ===================================================================
+// Part 5: Decorator Pattern (デコレータパターン)
+// 目的: 既存のオブジェクトの機能を変更せずに、新しい機能（責任）を動的に「飾り付け」する。
+// ===================================================================
 
 /**
- * デバッグ機能のデコレータ
+ * `InteractiveSceneManager`にデバッグ機能を追加するデコレータクラス。
  */
 export class DebugSceneDecorator {
+  // 装飾対象のインスタンスをコンストラクタで受け取る
   constructor(private sceneManager: InteractiveSceneManager) {}
-  
+
+  /** ワイヤーフレーム表示を有効にする */
   public enableWireframeMode(): void {
     this.sceneManager.scene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach(material => {
-            material.wireframe = true;
-          });
-        } else {
-          child.material.wireframe = true;
-        }
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.Material) {
+        child.material.wireframe = true;
       }
     });
   }
-  
-  public showBoundingBoxes(): void {
-    this.sceneManager.scene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        const box = new THREE.BoxHelper(child, 0xffff00);
-        this.sceneManager.scene.add(box);
-      }
-    });
-  }
-  
+
+  /** 座標軸ヘルパーを追加する */
   public addAxesHelper(size: number = 5): void {
-    const axesHelper = new THREE.AxesHelper(size);
-    this.sceneManager.scene.add(axesHelper);
-  }
-  
-  public addGridHelper(size: number = 10, divisions: number = 10): void {
-    const gridHelper = new THREE.GridHelper(size, divisions);
-    this.sceneManager.scene.add(gridHelper);
+    this.sceneManager.scene.add(new THREE.AxesHelper(size));
   }
 }

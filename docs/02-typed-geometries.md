@@ -1,45 +1,65 @@
-# 02. 型安全なオブジェクト作成
+# 02. 型安全な3Dオブジェクト作成ファクトリー
 
-## 📖 学習目標
+## 📖 この章で学ぶこと
 
-高度なTypeScript機能を使用して、型安全で再利用可能な3Dオブジェクト作成システムを構築します。
+TypeScriptの高度な型機能（ジェネリクス、条件付き型など）をフル活用して、**非常に型安全で、再利用可能な3Dオブジェクト作成システム（ファクトリー）**を構築します。少し発展的な内容ですが、これにより大規模で複雑なシーンでも、安全かつ効率的にオブジェクトを管理できるようになります。
 
-**学習内容:**
-- Union Types（合併型）の活用
-- Factory Pattern（ファクトリーパターン）
-- Type Guards（型ガード）
-- Generic Constraints（ジェネリック制約）
-- Conditional Types（条件付き型）
+**学習するTypeScriptの高度な機能:**
+- **Union Types（合併型）:** 許可する型の種類を限定します。
+- **Factory Pattern（ファクトリーパターン）:** オブジェクト作成のロジックを専門のクラスに集約します。
+- **Generic Constraints（ジェネリクス制約）:** ジェネリクスに「特定の条件を満たす型」という制約を付けます。
+- **Conditional Types（条件付き型）:** 型の定義にif文のような条件分岐を持ち込みます。
 
-**所要時間:** 60-90分  
-**対象者:** 基本シーンを完了した方
+**想定所要時間:** 60-90分  
+**対象者:** [基本シーンの作成](./01-basic-scene.md)を完了し、TypeScriptのクラスやインターフェースに慣れている方
 
-## 🎯 設計目標
+---
 
-従来の方法では、各ジオメトリとマテリアルを個別に作成する必要がありました：
+## 🎯 設計目標：なぜ「ファクトリー」が必要なのか？
 
+Three.jsでオブジェクトを一つ一つ作るのは、シンプルですが、数が増えると大変です。
+
+**従来の方法の問題点:**
 ```typescript
-// 従来の方法: 繰り返しが多く、型安全性が低い
+// 毎回、GeometryとMaterialを個別にnewする必要がある
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
-const sphereGeometry = new THREE.SphereGeometry(1, 32, 16);
 const basicMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-const lambertMaterial = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
-
 const boxMesh = new THREE.Mesh(boxGeometry, basicMaterial);
+
+const sphereGeometry = new THREE.SphereGeometry(1, 32, 16);
+const lambertMaterial = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
 const sphereMesh = new THREE.Mesh(sphereGeometry, lambertMaterial);
+
+// ・コードが冗長になりやすい
+// ・設定ミス（引数の順番など）が起きやすい
+// ・一貫性のないオブジェクトが作られてしまう可能性がある
 ```
 
-**目標**: 型安全で統一されたファクトリーシステムを構築する
-
-## 🏗️ 型定義の設計
-
-### Union Types（合併型）
-
-サポートするジオメトリとマテリアルのタイプを定義します：
+**この章でのゴール:**
+この問題を解決するため、以下のような「設定オブジェクト」を渡すだけで、型安全に3Dオブジェクトを生成してくれる**「ファクトリー（工場）」**クラスを構築します。
 
 ```typescript
+// 目指す未来のコード
+const redBox = TypedObjectFactory.createMesh({
+  geometry: { type: 'box', config: { width: 2 } },
+  material: { type: 'basic', config: { color: 0xff0000 } }
+});
+```
+
+---
+
+## 🏗️ 型定義の設計：ファクトリーの「仕様書」を作る
+
+まず、ファクトリーが受け入れることができるジオメトリ（形状）とマテリアル（材質）の種類を、`Union Types`を使って厳密に定義します。
+
+### Step 1: サポートする種類をUnion Typesで定義する
+
+```typescript
+// types/geometry-types.ts (新しいファイル)
+
 /**
- * サポートされているジオメトリタイプ
+ * このファクトリーが作成をサポートするジオメトリの種類
+ * これ以外の文字列を指定すると、コンパイルエラーになる
  */
 export type GeometryType = 
   | 'box'
@@ -47,523 +67,252 @@ export type GeometryType =
   | 'cone'
   | 'cylinder'
   | 'torus'
-  | 'dodecahedron'
   | 'plane';
 
 /**
- * サポートされているマテリアルタイプ
+ * このファクトリーが作成をサポートするマテリアルの種類
  */
 export type MaterialType = 
-  | 'basic'
-  | 'lambert'
-  | 'phong'
-  | 'standard'
-  | 'normal'
-  | 'wireframe';
+  | 'basic'     // 最もシンプルなマテリアル
+  | 'lambert'   // 光の当たり方を考慮するが、反射はしない
+  | 'phong'     // 光沢のある反射（ハイライト）を表現できる
+  | 'standard'; // PBR（物理ベース）の最もリアルなマテリアル
 ```
+**💡 ここでの学び:** `Union Types`を使うことで、プログラムが扱うデータの種類を限定できます。これにより、タイプミスや未対応の種類の指定を防ぎ、コードの安全性を高めます。
 
-### 設定オブジェクトの型定義
+### Step 2: 各種類の「設定」の型を`interface`で定義する
 
-各ジオメトリタイプに対応する設定インターフェースを定義：
+次に、それぞれのジオメトリやマテリアルが持つ固有の設定項目を`interface`で定義します。
 
 ```typescript
-/**
- * ボックスジオメトリの設定
- */
-export interface BoxGeometryConfig {
-  width?: number;
-  height?: number;
-  depth?: number;
-  widthSegments?: number;
-  heightSegments?: number;
-  depthSegments?: number;
-}
+// types/geometry-types.ts (続き)
+import * as THREE from 'three';
+
+// --- ジオメトリ設定インターフェース ---
+export interface BoxGeometryConfig { width?: number; height?: number; depth?: number; }
+export interface SphereGeometryConfig { radius?: number; widthSegments?: number; heightSegments?: number; }
+// ... Cone, Cylinder, Torus, Planeも同様に定義 ...
+
+// --- マテリアル設定インターフェース ---
+export interface BasicMaterialConfig { color?: number; wireframe?: boolean; }
+export interface LambertMaterialConfig { color?: number; emissive?: number; }
+// ... Phong, Standardも同様に定義 ...
 
 /**
- * 球体ジオメトリの設定
- */
-export interface SphereGeometryConfig {
-  radius?: number;
-  widthSegments?: number;
-  heightSegments?: number;
-  phiStart?: number;
-  phiLength?: number;
-  thetaStart?: number;
-  thetaLength?: number;
-}
-
-/**
- * 統合ジオメトリ設定型（Union Types使用）
+ * 全てのジオメトリ設定を統合する型
+ * `type`プロパティによって、どの`config`を持つべきかが決まる（Discriminated Union）
  */
 export type GeometryConfig = 
-  | { type: 'box'; config: BoxGeometryConfig }
-  | { type: 'sphere'; config: SphereGeometryConfig }
-  | { type: 'cone'; config: ConeGeometryConfig }
-  | { type: 'torus'; config: TorusGeometryConfig }
-  | { type: 'plane'; config: { width?: number; height?: number } };
-```
+  | { type: 'box'; config?: BoxGeometryConfig }
+  | { type: 'sphere'; config?: SphereGeometryConfig }
+  | { type: 'cone'; config?: ConeGeometryConfig }
+  // ... 他のジオメトリも同様 ...
 
-## 🎭 Conditional Types（条件付き型）
-
-TypeScriptの高度な機能を使用して、型に基づいて戻り値の型を決定します：
-
-```typescript
 /**
- * 型安全なジオメトリファクトリーの戻り値型
- * ジオメトリタイプに基づいて適切なThree.jsクラスを返す
+ * 全てのマテリアル設定を統合する型
  */
-export type GeometryInstance<T extends GeometryType> = 
+export type MaterialConfig = 
+  | { type: 'basic'; config?: BasicMaterialConfig }
+  | { type: 'lambert'; config?: LambertMaterialConfig }
+  // ... 他のマテリアルも同様 ...
+```
+**💡 ここでの学び:** `Discriminated Union`（識別可能な合併型）は、`type`のような共通のプロパティを使って、どの型であるかを判別できるようにする強力なパターンです。TypeScriptはこれを賢く解釈し、`if (config.type === 'box')` のようなコードブロック内では、`config`が`BoxGeometryConfig`を持つことを自動的に理解してくれます。
+
+---
+
+## 🏭 ファクトリークラスの実装
+
+設計した型定義を元に、実際にオブジェクトを作成するファクトリークラスを実装します。
+
+### Step 3: `TypedGeometryFactory` - ジオメトリ部品を作る工場
+
+まずは、ジオメトリやマテリアルといった「部品」を作成する専門のファクトリーを作ります。
+
+**src/typed-geometry-factory.ts**
+```typescript
+// src/typed-geometry-factory.ts
+import * as THREE from 'three';
+import { GeometryType, GeometryConfig, MaterialType, MaterialConfig } from '../types/geometry-types';
+
+// TypeScriptの高度な型。少し難しいですが、「型レベルの三項演算子」のようなものです。
+// `T`が'box'なら`THREE.BoxGeometry`、'sphere'なら`THREE.SphereGeometry`...という型を返す。
+type GeometryInstance<T extends GeometryType> = 
   T extends 'box' ? THREE.BoxGeometry :
   T extends 'sphere' ? THREE.SphereGeometry :
-  T extends 'cone' ? THREE.ConeGeometry :
-  T extends 'cylinder' ? THREE.CylinderGeometry :
-  T extends 'torus' ? THREE.TorusGeometry :
-  T extends 'plane' ? THREE.PlaneGeometry :
-  THREE.BufferGeometry;
+  // ... 他のジオメトリも続く ...
+  THREE.BufferGeometry; // どれにも当てはまらない場合のデフォルト
 
-/**
- * 型安全なマテリアルファクトリーの戻り値型
- */
-export type MaterialInstance<T extends MaterialType> = 
+// マテリアル版も同様
+type MaterialInstance<T extends MaterialType> = 
   T extends 'basic' ? THREE.MeshBasicMaterial :
   T extends 'lambert' ? THREE.MeshLambertMaterial :
-  T extends 'phong' ? THREE.MeshPhongMaterial :
-  T extends 'standard' ? THREE.MeshStandardMaterial :
-  T extends 'normal' ? THREE.MeshNormalMaterial :
+  // ... 他のマテリアルも続く ...
   THREE.Material;
-```
 
-## 🏭 TypedGeometryFactory クラス
-
-型安全なジオメトリ作成を行うファクトリークラスです：
-
-```typescript
+/**
+ * 型安全なジオメトリ・マテリアル作成ファクトリー
+ */
 export class TypedGeometryFactory {
   
   /**
-   * ジオメトリを作成（型安全）
-   * ジェネリクスを使用して型安全な3Dジオメトリを作成
+   * 型安全なジオメトリを作成する静的メソッド
+   * `<T extends GeometryType>` はジェネリクス制約で、TがGeometryTypeのいずれかであることを保証する
    */
   static createGeometry<T extends GeometryType>(
     type: T,
-    config: GeometryConfig['config'] = {}
+    // `Extract`はUnion型から特定の型だけを抜き出すユーティリティ型
+    config: Extract<GeometryConfig, { type: T }>['config']
   ): GeometryInstance<T> {
     switch (type) {
       case 'box': {
-        // Extract<>を使用して特定の設定型を抽出
-        const cfg = config as Extract<GeometryConfig, { type: 'box' }>['config'];
-        return new THREE.BoxGeometry(
-          cfg.width ?? 1,
-          cfg.height ?? 1,
-          cfg.depth ?? 1,
-          cfg.widthSegments ?? 1,
-          cfg.heightSegments ?? 1,
-          cfg.depthSegments ?? 1
-        ) as GeometryInstance<T>;
+        const cfg = config as BoxGeometryConfig || {};
+        return new THREE.BoxGeometry(cfg.width ?? 1, cfg.height ?? 1, cfg.depth ?? 1) as GeometryInstance<T>;
       }
-      
       case 'sphere': {
-        const cfg = config as Extract<GeometryConfig, { type: 'sphere' }>['config'];
-        return new THREE.SphereGeometry(
-          cfg.radius ?? 1,
-          cfg.widthSegments ?? 32,
-          cfg.heightSegments ?? 16,
-          cfg.phiStart ?? 0,
-          cfg.phiLength ?? Math.PI * 2,
-          cfg.thetaStart ?? 0,
-          cfg.thetaLength ?? Math.PI
-        ) as GeometryInstance<T>;
+        const cfg = config as SphereGeometryConfig || {};
+        return new THREE.SphereGeometry(cfg.radius ?? 1, cfg.widthSegments ?? 32, cfg.heightSegments ?? 16) as GeometryInstance<T>;
       }
-      
-      case 'torus': {
-        const cfg = config as Extract<GeometryConfig, { type: 'torus' }>['config'];
-        return new THREE.TorusGeometry(
-          cfg.radius ?? 1,
-          cfg.tube ?? 0.4,
-          cfg.radialSegments ?? 8,
-          cfg.tubularSegments ?? 6,
-          cfg.arc ?? Math.PI * 2
-        ) as GeometryInstance<T>;
-      }
-      
-      default:
-        // TypeScriptの網羅性チェック（コンパイル時に全ケースの処理を保証）
+      // ... 他のジオメトリのcaseも続く ...
+      default: {
+        // 網羅性チェック：もし新しいGeometryTypeを追加して、ここのcase文で処理を書き忘れるとコンパイルエラーになる
         const _exhaustiveCheck: never = type;
-        throw new Error(`サポートされていないジオメトリタイプ: ${String(_exhaustiveCheck)}`);
+        throw new Error(`Unsupported geometry type: ${_exhaustiveCheck}`);
+      }
     }
   }
 
   /**
-   * マテリアルを作成（型安全）
+   * 型安全なマテリアルを作成する静的メソッド
    */
   static createMaterial<T extends MaterialType>(
     type: T,
-    config: MaterialConfig['config'] = {}
+    config: Extract<MaterialConfig, { type: T }>['config']
   ): MaterialInstance<T> {
-    const baseConfig = config as MaterialConfig['config'];
-    
-    switch (type) {
-      case 'basic': {
-        return new THREE.MeshBasicMaterial({
-          color: baseConfig.color ?? 0xffffff,
-          transparent: baseConfig.transparent ?? false,
-          opacity: baseConfig.opacity ?? 1,
-          wireframe: baseConfig.wireframe ?? false
-        }) as MaterialInstance<T>;
-      }
-      
-      case 'lambert': {
-        const cfg = config as Extract<MaterialConfig, { type: 'lambert' }>['config'];
-        return new THREE.MeshLambertMaterial({
-          color: cfg.color ?? 0xffffff,
-          emissive: cfg.emissive ?? 0x000000,
-          emissiveIntensity: cfg.emissiveIntensity ?? 1,
-          transparent: cfg.transparent ?? false,
-          opacity: cfg.opacity ?? 1,
-          map: cfg.map ?? null
-        }) as MaterialInstance<T>;
-      }
-      
-      case 'phong': {
-        const cfg = config as Extract<MaterialConfig, { type: 'phong' }>['config'];
-        return new THREE.MeshPhongMaterial({
-          color: cfg.color ?? 0xffffff,
-          emissive: cfg.emissive ?? 0x000000,
-          specular: cfg.specular ?? 0x111111,
-          shininess: cfg.shininess ?? 30,
-          transparent: cfg.transparent ?? false,
-          opacity: cfg.opacity ?? 1,
-          map: cfg.map ?? null
-        }) as MaterialInstance<T>;
-      }
-      
-      default:
-        const _exhaustiveCheck: never = type;
-        throw new Error(`サポートされていないマテリアルタイプ: ${String(_exhaustiveCheck)}`);
-    }
+    // ... createGeometryと同様の実装 ...
   }
 }
 ```
+**💡 ここでの学び:**
+- **Conditional Types (`extends ? :`)**: 型定義の中で条件分岐を行うための機能です。`createGeometry('box', ...)`と呼んだ時に、戻り値の型が自動的に`THREE.BoxGeometry`であるとTypeScriptが推論してくれるようになります。
+- **ジェネリクス (`<T>`)**: このメソッドが様々な`type`に対応できる、再利用可能な部品であることを示します。
 
-## 🔧 TypedObjectFactory クラス
+### Step 4: `TypedObjectFactory` - 部品を組み立てて製品を作る工場
 
-ジオメトリとマテリアルを組み合わせて完全な3Dオブジェクトを作成します：
+次に、`TypedGeometryFactory`が作った部品（ジオメトリとマテリアル）を組み立てて、最終製品である`THREE.Mesh`を作成するファクトリーを作ります。
 
+**src/typed-object-factory.ts**
 ```typescript
+// src/typed-object-factory.ts
+import * as THREE from 'three';
+import { TypedGeometryFactory } from './typed-geometry-factory';
+import { GeometryConfig, MaterialConfig } from '../types/geometry-types';
+
 /**
- * 3Dオブジェクトの完全な設定インターフェース
+ * 3Dオブジェクト（Mesh）の完全な設定インターフェース
  */
 export interface ObjectConfig {
   geometry: GeometryConfig;
   material: MaterialConfig;
-  transform?: {
-    position?: Partial<{ x: number; y: number; z: number }>;
-    rotation?: Partial<{ x: number; y: number; z: number }>;
-    scale?: Partial<{ x: number; y: number; z: number }>;
-  };
+  transform?: { /* ... position, rotation, scale ... */ };
   name?: string;
-  userData?: Record<string, unknown>;
 }
 
 /**
- * 必須フィールドを持つ型を作成するユーティリティ型
+ * 型安全なオブジェクト（Mesh）作成ファクトリー
  */
-export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
-
-/**
- * 部分的に必須フィールドを持つオブジェクト設定型
- */
-export type RequiredObjectConfig = RequiredFields<ObjectConfig, 'geometry' | 'material'>;
-
 export class TypedObjectFactory {
   
   /**
-   * メッシュオブジェクトを作成（型安全）
+   * 設定オブジェクトに基づいて、単一のMeshを作成する
    */
-  static createMesh(config: RequiredObjectConfig): THREE.Mesh {
-    // ジオメトリの作成
+  static createMesh(config: ObjectConfig): THREE.Mesh {
+    // 1. 部品工場(TypedGeometryFactory)にジオメトリの作成を依頼
     const geometry = TypedGeometryFactory.createGeometry(
       config.geometry.type,
       config.geometry.config
     );
     
-    // マテリアルの作成
+    // 2. 部品工場にマテリアルの作成を依頼
     const material = TypedGeometryFactory.createMaterial(
       config.material.type,
       config.material.config
     );
     
-    // メッシュの作成
+    // 3. 部品を組み立ててMeshを作成
     const mesh = new THREE.Mesh(geometry, material);
     
-    // オプション設定の適用
-    if (config.name) {
-      mesh.name = config.name;
-    }
-    
-    if (config.userData) {
-      mesh.userData = { ...config.userData };
-    }
-    
-    if (config.transform) {
-      this.applyTransform(mesh, config.transform);
-    }
+    // 4. その他の設定（名前や位置など）を適用
+    if (config.name) mesh.name = config.name;
+    // ... transformの適用 ...
     
     return mesh;
   }
   
   /**
-   * 複数のメッシュを作成
+   * 設定オブジェクトの配列から、複数のMeshを一括で作成する
    */
-  static createMeshes(configs: RequiredObjectConfig[]): THREE.Mesh[] {
+  static createMeshes(configs: ObjectConfig[]): THREE.Mesh[] {
     return configs.map(config => this.createMesh(config));
-  }
-  
-  /**
-   * 変換の適用（プライベートヘルパーメソッド）
-   */
-  private static applyTransform(
-    object: THREE.Object3D, 
-    transform: ObjectConfig['transform']
-  ): void {
-    if (!transform) return;
-    
-    // 位置の設定
-    if (transform.position) {
-      if (transform.position.x !== undefined) object.position.x = transform.position.x;
-      if (transform.position.y !== undefined) object.position.y = transform.position.y;
-      if (transform.position.z !== undefined) object.position.z = transform.position.z;
-    }
-    
-    // 回転の設定
-    if (transform.rotation) {
-      if (transform.rotation.x !== undefined) object.rotation.x = transform.rotation.x;
-      if (transform.rotation.y !== undefined) object.rotation.y = transform.rotation.y;
-      if (transform.rotation.z !== undefined) object.rotation.z = transform.rotation.z;
-    }
-    
-    // スケールの設定
-    if (transform.scale) {
-      if (transform.scale.x !== undefined) object.scale.x = transform.scale.x;
-      if (transform.scale.y !== undefined) object.scale.y = transform.scale.y;
-      if (transform.scale.z !== undefined) object.scale.z = transform.scale.z;
-    }
   }
 }
 ```
+**💡 ここでの学び:** ファクトリーを「部品工場」と「組立工場」に分けることで、それぞれの責任が明確になります。`TypedObjectFactory`を使う側は、複雑なジオメトリやマテリアルの作成方法を知らなくても、ただ設定オブジェクトを渡すだけで欲しい`Mesh`を手に入れることができます。
 
-## 🛡️ Type Guards（型ガード）
+---
 
-実行時の型安全性を確保するための型ガード関数：
+## 💡 使い方とメリット
 
-```typescript
-/**
- * 便利な型安全ヘルパー関数群
- */
-export const TypedHelpers = {
-  /**
-   * 色の検証と変換
-   */
-  validateColor(color: unknown): THREE.Color {
-    if (color instanceof THREE.Color) {
-      return color;
-    }
-    
-    try {
-      return new THREE.Color(color as THREE.ColorRepresentation);
-    } catch {
-      console.warn('Invalid color provided, using default white');
-      return new THREE.Color(0xffffff);
-    }
-  },
-  
-  /**
-   * Vector3の安全な作成
-   */
-  createVector3(x: number = 0, y: number = 0, z: number = 0): THREE.Vector3 {
-    return new THREE.Vector3(
-      Number.isFinite(x) ? x : 0,
-      Number.isFinite(y) ? y : 0,
-      Number.isFinite(z) ? z : 0
-    );
-  },
-  
-  /**
-   * オブジェクトの型安全なクローン
-   */
-  cloneMesh<T extends THREE.Mesh>(mesh: T): T {
-    const cloned = mesh.clone() as T;
-    cloned.geometry = mesh.geometry.clone();
-    cloned.material = (mesh.material as THREE.Material).clone();
-    return cloned;
-  }
-} as const;
-```
-
-## 💡 使用例
-
-作成したファクトリーシステムの実際の使用方法：
+作成したファクトリーシステムを使ってみましょう。コードがいかに簡潔で安全になるかを確認してください。
 
 ```typescript
-// 1. 基本的なオブジェクト作成
+// --- 使用例 ---
+
+// 1. 単純な赤いボックスを作成
 const redBox = TypedObjectFactory.createMesh({
-  geometry: {
-    type: 'box',
-    config: { width: 2, height: 1, depth: 1 }
-  },
-  material: {
-    type: 'basic',
-    config: { color: 0xff0000 }
-  },
+  geometry: { type: 'box', config: { width: 2 } },
+  material: { type: 'basic', config: { color: 0xff0000 } },
   name: 'RedBox'
 });
 
-// 2. 複雑な設定でのオブジェクト作成
-const decorativeSphere = TypedObjectFactory.createMesh({
-  geometry: {
-    type: 'sphere',
-    config: { 
-      radius: 1.5, 
-      widthSegments: 32, 
-      heightSegments: 16 
-    }
-  },
-  material: {
-    type: 'phong',
-    config: { 
-      color: 0x00ff00,
-      specular: 0x222222,
-      shininess: 100
-    }
-  },
-  transform: {
-    position: { x: 2, y: 0, z: 0 },
-    rotation: { x: 0.5, y: 0.5, z: 0 }
-  },
-  name: 'DecorativeSphere',
-  userData: { type: 'decoration', interactive: true }
+// 2. 複雑な設定を持つ光沢のある球体を作成
+const shinySphere = TypedObjectFactory.createMesh({
+  geometry: { type: 'sphere', config: { radius: 1.5, widthSegments: 64 } },
+  material: { type: 'phong', config: { color: 0x00ff00, shininess: 100 } },
+  transform: { position: { x: 2 } }
 });
 
-// 3. 複数オブジェクトの一括作成
+// 3. 複数のオブジェクトを一括作成
 const objects = TypedObjectFactory.createMeshes([
-  {
-    geometry: { type: 'box', config: { width: 1, height: 1, depth: 1 } },
-    material: { type: 'basic', config: { color: 0xff0000 } },
-    transform: { position: { x: -2, y: 0, z: 0 } }
-  },
-  {
-    geometry: { type: 'sphere', config: { radius: 0.8 } },
-    material: { type: 'lambert', config: { color: 0x00ff00 } },
-    transform: { position: { x: 0, y: 0, z: 0 } }
-  },
-  {
-    geometry: { type: 'cone', config: { radius: 0.6, height: 1.2 } },
-    material: { type: 'phong', config: { color: 0x0000ff } },
-    transform: { position: { x: 2, y: 0, z: 0 } }
-  }
+  { geometry: { type: 'cone' }, material: { type: 'lambert', config: { color: 0x0000ff } } },
+  { geometry: { type: 'torus' }, material: { type: 'standard', config: { color: 0xffff00 } } }
 ]);
 
-// 4. シーンへの追加
-objects.forEach(obj => scene.add(obj));
+// --- 型安全性のメリット ---
+
+// エラー例1: サポートされていないジオメトリタイプ
+// const invalidObject = TypedObjectFactory.createMesh({
+//   geometry: { type: 'pyramid', ... } // 'pyramid'はGeometryTypeにないのでコンパイルエラー
+// });
+
+// エラー例2: `type`と`config`の不一致
+// const mismatchedConfig = TypedObjectFactory.createMesh({
+//   geometry: { type: 'box', config: { radius: 1 } }, // Boxにradiusプロパティはないのでコンパイルエラー
+//   ...
+// });
 ```
 
-## 🔍 高度な使用パターン
+## 🎓 まとめ: 高度な型システムによる恩恵
 
-### 動的オブジェクト生成
+この章では、TypeScriptの少し難しいけれど強力な型機能を使って、非常に堅牢なオブジェクト作成システムを構築しました。
 
-```typescript
-/**
- * ランダムなオブジェクトを生成する関数
- */
-function createRandomObject(): THREE.Mesh {
-  const geometryTypes: GeometryType[] = ['box', 'sphere', 'cone', 'torus'];
-  const materialTypes: MaterialType[] = ['basic', 'lambert', 'phong'];
-  
-  const randomGeometry = geometryTypes[Math.floor(Math.random() * geometryTypes.length)];
-  const randomMaterial = materialTypes[Math.floor(Math.random() * materialTypes.length)];
-  const randomColor = Math.random() * 0xffffff;
-  
-  return TypedObjectFactory.createMesh({
-    geometry: {
-      type: randomGeometry,
-      config: {} // デフォルト設定を使用
-    },
-    material: {
-      type: randomMaterial,
-      config: { color: randomColor }
-    },
-    transform: {
-      position: {
-        x: (Math.random() - 0.5) * 10,
-        y: (Math.random() - 0.5) * 10,
-        z: (Math.random() - 0.5) * 10
-      }
-    }
-  });
-}
+- **再利用性の向上:** オブジェクトの作成ロジックが一元化され、どこからでも同じ品質のオブジェクトを簡単に作れるようになりました。
+- **可読性の向上:** `new THREE.BoxGeometry(...)`のような具体的な実装がファクトリー内部に隠蔽され、利用側は「どんなオブジェクトが欲しいか」という宣言的な設定を書くだけで済むようになりました。
+- **究極の型安全性:** ジェネリクスと条件付き型を組み合わせることで、設定のタイプミスや矛盾をコンパイル段階で完全に排除できるようになりました。
 
-// 使用例: 10個のランダムオブジェクトを作成
-const randomObjects = Array.from({ length: 10 }, () => createRandomObject());
-randomObjects.forEach(obj => scene.add(obj));
-```
+このようなファクトリーパターンは、特に大規模なプロジェクトや、複数人で開発する際に、コードの品質と一貫性を保つための強力な武器となります。
 
-### 設定の検証機能
+## 🚀 次のステップ
 
-```typescript
-/**
- * オブジェクト設定の検証
- */
-function validateObjectConfig(config: unknown): config is RequiredObjectConfig {
-  if (!config || typeof config !== 'object') return false;
-  
-  const obj = config as any;
-  
-  // 必須フィールドの確認
-  if (!obj.geometry || !obj.material) return false;
-  if (!obj.geometry.type || !obj.material.type) return false;
-  
-  // 有効なタイプかチェック
-  const validGeometryTypes: GeometryType[] = ['box', 'sphere', 'cone', 'cylinder', 'torus', 'plane'];
-  const validMaterialTypes: MaterialType[] = ['basic', 'lambert', 'phong', 'standard', 'normal', 'wireframe'];
-  
-  return validGeometryTypes.includes(obj.geometry.type) && 
-         validMaterialTypes.includes(obj.material.type);
-}
+型安全なオブジェクト作成の基盤ができたので、次はこの基盤をさらに発展させ、よりオブジェクト指向的なアプローチでシーンを構築する方法を学びます。
 
-// JSONからの安全なオブジェクト作成
-function createMeshFromJSON(jsonString: string): THREE.Mesh | null {
-  try {
-    const config = JSON.parse(jsonString);
-    
-    if (validateObjectConfig(config)) {
-      return TypedObjectFactory.createMesh(config);
-    } else {
-      console.error('Invalid object configuration');
-      return null;
-    }
-  } catch (error) {
-    console.error('Failed to parse JSON:', error);
-    return null;
-  }
-}
-```
-
-## 🎓 次のステップ
-
-型安全なオブジェクト作成システムを理解したら、さらに高度な設計パターンに進みましょう。
-
-**次の学習項目:**
-- [03. 高度な設計パターン](./03-class-based-scene.md)
-- 抽象クラスと継承
-- Mixins（ミックスイン）パターン
-- Decorator Pattern（デコレータパターン）
-
-## 🔍 重要なポイント
-
-1. **Union Types**: 限定された選択肢を型安全に表現
-2. **Conditional Types**: 入力型に基づいて出力型を決定
-3. **Factory Pattern**: オブジェクト作成ロジックの統一と再利用
-4. **Type Guards**: 実行時の型安全性確保
-5. **Generic Constraints**: ジェネリクスの型制約で柔軟性と安全性を両立
-
-このシステムにより、Three.jsオブジェクトの作成が型安全かつ効率的になり、大規模なアプリケーションでも保守しやすいコードを書けるようになります。
+**[03. クラスベースのシーン設計](./03-class-based-scene.md)** に進み、抽象クラスや継承といった概念をThree.jsの世界に応用していきましょう！

@@ -1,392 +1,542 @@
-# 01. 基本シーンの作成
+# 01. 基本的な3Dシーンの作成 - Three.jsハンズオン
 
-## 📖 学習目標
+## 📖 この章で学ぶこと
 
-TypeScriptを使用してThree.jsの基本的な3Dシーンを作成する方法を学習します。
+Three.jsで3D空間を構築するための最も基本的な要素を学び、**再利用可能で本格的なシーン管理クラス**の土台を作成します。ただ動かすだけでなく、将来的に拡張しやすい「良い設計」を目指します。
 
-**学習内容:**
-- Three.jsの基本要素（Scene、Camera、Renderer）
-- TypeScriptでのクラス設計
-- インターフェースを使った設定管理
-- イベントハンドリングとリソース管理
-- 型安全なメソッド設計
+**作成するもの:**
+- **シーン基盤クラス:** 3D世界の土台となる、整理整頓されたクラス。
+- **型安全な設定システム:** TypeScriptの力を借りて、安全にシーンの設定（カメラ、背景色など）を変更できる仕組み。
+- **リソース管理の基礎:** 作成した3Dオブジェクトを適切に管理し、メモリリークを防ぐための初歩を学びます。
 
-**所要時間:** 45-60分  
-**対象者:** TypeScript × Three.js連携を理解した方
+**学習のポイント:**
+- **Three.jsの三大要素:** `Scene`（舞台）、`Camera`（撮影機材）、`Renderer`（映写機）の役割を理解します。
+- **TypeScriptでのクラス設計:** なぜクラスを使うのか、そのメリット（コードの整理、再利用）を実感します。
+- **インターフェースによる設定管理:** 設定を「設計図」として定義し、安全で分かりやすいコードを書く方法を学びます。
+- **イベント処理の初歩:** ウィンドウサイズが変わった時などに自動で対応する仕組みを作ります。
 
-## 🎬 Three.jsの基本構成要素
+**想定所要時間:** 45-60分  
+**対象者:** [前の章](./00-typescript-basics.md)でTypeScriptの基本を学んだ方
 
-Three.jsで3Dシーンを作成するには、必ず以下の3つの要素が必要です：
+---
 
-1. **Scene（シーン）**: 3Dオブジェクトを配置する空間
-2. **Camera（カメラ）**: シーンを見る視点
-3. **Renderer（レンダラー）**: シーンをcanvasに描画する機能
+## 🚀 準備：プロジェクトをセットアップしよう
 
+Three.jsとTypeScriptを使うための環境を準備します。
+
+```bash
+# 1. プロジェクト用のフォルダを作成
+mkdir threejs-foundation
+
+# 2. 作成したフォルダに移動
+cd threejs-foundation
+
+# 3. プロジェクトを初期化
+npm init -y
+
+# 4. Three.js本体をインストール
+npm install three
+
+# 5. 開発に必要なツールをインストール
+# - typescript: TypeScriptコンパイラ
+# - @types/three: Three.js用の型定義ファイル
+# - @types/node: Node.js環境用の型定義ファイル
+# - vite: 高速な開発サーバー
+npm install -D typescript @types/three @types/node vite
+
+# 6. TypeScriptの設定ファイルを生成
+npx tsc --init
+```
+
+---
+
+## 🎯 プロジェクト1: シーンの基盤となるクラスを設計する
+
+### Step 1-1: `interface`で、安全な設定の「設計図」を作る
+
+最初に、シーンの設定を管理するためのTypeScriptの`インターフェース`を定義します。これにより、設定項目やその型が明確になり、タイプミスなどのヒューマンエラーを防ぎます。
+
+**src/types/scene-config.ts**
 ```typescript
+// src/types/scene-config.ts - 型安全な設定を定義するためのファイル
 import * as THREE from 'three';
 
-// 基本的な3つの要素
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
-```
-
-## 🏗️ 型安全な設定インターフェース
-
-設定オブジェクトをインターフェースで定義することで、型安全性を確保します。
-
-```typescript
-// シーンの設定を定義するインターフェース
-interface SceneConfig {
-  camera: {
-    fov: number;          // 視野角（Field of View）
-    aspect: number;       // アスペクト比（横/縦）
-    near: number;         // 近クリッピング面
-    far: number;          // 遠クリッピング面
+/**
+ * カメラ設定の設計図 (インターフェース)
+ * カメラに必要な設定項目を定義します。
+ */
+export interface CameraConfig {
+    type: 'perspective' | 'orthographic'; // カメラの種類
+    fov?: number;          // 視野角 (PerspectiveCamera用)
+    aspect?: number;       // アスペクト比 (通常はブラウザの幅/高さ)
+    near: number;          // カメラに映る一番手前の距離
+    far: number;           // カメラに映る一番奥の距離
     position: THREE.Vector3; // カメラの位置
-  };
-  renderer: {
-    antialias: boolean;   // アンチエイリアス（滑らかな描画）
-    alpha: boolean;       // 透明度サポート
-  };
-  scene: {
-    background: THREE.Color; // 背景色
-  };
+    target?: THREE.Vector3; // カメラが注視する点
 }
 
-// デフォルト設定
-const defaultConfig: SceneConfig = {
-  camera: {
-    fov: 75,
-    aspect: window.innerWidth / window.innerHeight,
-    near: 0.1,
-    far: 1000,
-    position: new THREE.Vector3(0, 0, 5)
-  },
-  renderer: {
-    antialias: true,
-    alpha: false
-  },
-  scene: {
-    background: new THREE.Color(0x222222)
-  }
+/**
+ * レンダラー設定の設計図 (インターフェース)
+ * 描画に関する設定項目を定義します。
+ */
+export interface RendererConfig {
+    antialias: boolean; // アンチエイリアス (ギザギザを滑らかにするか)
+    alpha: boolean;     // 背景を透過させるか
+    shadowMap: {        // 影の描画設定
+        enabled: boolean;
+        type: THREE.ShadowMapType;
+    };
+}
+
+/**
+ * シーン設定の設計図 (インターフェース)
+ * 3D空間全体に関する設定項目を定義します。
+ */
+export interface SceneConfig {
+    background?: THREE.Color | THREE.Texture | null; // 背景色や背景画像
+    fog?: { // 霧（フォグ）の設定
+        type: 'linear' | 'exponential';
+        color: THREE.Color;
+        near?: number; // フォグが始まる距離
+        far?: number;  // フォグが最大になる距離
+        density?: number; // フォグの密度
+    };
+}
+
+/**
+ * 全ての設定を統合した、最終的な設計図 (インターフェース)
+ * このインターフェースに従うことで、シーン作成に必要な設定が全て揃うことを保証します。
+ */
+export interface FoundationSceneConfig {
+    camera: CameraConfig;
+    renderer: RendererConfig;
+    scene: SceneConfig;
+    container?: HTMLElement; // レンダラーを描画するDOM要素
+    autoResize: boolean;     // ウィンドウサイズ変更時に自動でリサイズするか
+    stats?: boolean;          // パフォーマンス統計を表示するか
+}
+
+/**
+ * デフォルト設定オブジェクト
+ * ユーザーが何も指定しなかった場合に、この設定が使われます。
+ * `FoundationSceneConfig`インターフェースに準拠しているため、型安全です。
+ */
+export const DEFAULT_CONFIG: FoundationSceneConfig = {
+    camera: {
+        type: 'perspective',
+        fov: 75,
+        aspect: window.innerWidth / window.innerHeight,
+        near: 0.1,
+        far: 1000,
+        position: new THREE.Vector3(0, 0, 5)
+    },
+    renderer: {
+        antialias: true,
+        alpha: false,
+        shadowMap: {
+            enabled: true,
+            type: THREE.PCFSoftShadowMap
+        }
+    },
+    scene: {
+        background: new THREE.Color(0x222222) // 暗いグレー
+    },
+    autoResize: true,
+    stats: false
 };
 ```
+**💡 ここでの学び:** 設定をインターフェースとして定義することで、`FoundationScene`クラスに渡す設定オブジェクトの「形」を強制できます。これにより、必要なプロパティの不足や、型の間違いをコンパイル時に検出でき、非常に安全になります。
 
-## 👥 BasicSceneクラスの設計
+---
 
-クラスベースの設計で、再利用可能で保守しやすいコードを作成します。
+### Step 1-2: 基盤シーンクラスの骨格を実装する
 
+いよいよ、Three.jsのコア要素を管理する`FoundationScene`クラスを作成します。このクラスが、今後の3Dプロジェクトすべての土台となります。
+
+**src/foundation-scene.ts**
 ```typescript
-export class BasicScene {
-  // readonly: 作成後に変更できないプロパティ
-  public readonly camera: THREE.PerspectiveCamera;
-  public readonly scene: THREE.Scene;
-  public readonly renderer: THREE.WebGLRenderer;
-  
-  // private: クラス内部でのみアクセス可能
-  private cube: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
-  private animationId: number | null = null;
+// src/foundation-scene.ts - 再利用可能なThree.jsシーン基盤クラス
+import * as THREE from 'three';
+import { FoundationSceneConfig, DEFAULT_CONFIG, CameraConfig, RendererConfig, SceneConfig } from './types/scene-config';
 
-  constructor(config: Partial<SceneConfig> = {}) {
-    const mergedConfig = this.mergeConfig(defaultConfig, config);
+/**
+ * 企業レベルの基盤シーンクラス
+ * Three.jsのコア要素（シーン、カメラ、レンダラー）をカプセル化し、
+ * 初期化、アニメーション、リソース管理、イベント処理などの共通機能を提供する。
+ */
+export class FoundationScene {
+    // --- Three.jsのコア要素 --- (public readonlyで外部から変更不可)
+    public readonly camera: THREE.Camera;
+    public readonly scene: THREE.Scene;
+    public readonly renderer: THREE.WebGLRenderer;
     
-    // カメラの作成
-    this.camera = new THREE.PerspectiveCamera(
-      mergedConfig.camera.fov,
-      mergedConfig.camera.aspect,
-      mergedConfig.camera.near,
-      mergedConfig.camera.far
-    );
-    this.camera.position.copy(mergedConfig.camera.position);
+    // --- 内部状態管理用のプロパティ --- (privateで外部から隠蔽)
+    private animationId: number | null = null; // requestAnimationFrameのID
+    private clock: THREE.Clock = new THREE.Clock(); // アニメーションの時間管理用
+    private config: FoundationSceneConfig; // このシーンインスタンスの設定
+    private isInitialized: boolean = false; // 初期化済みかどうかのフラグ
+    private isDisposed: boolean = false;    // 破棄済みかどうかのフラグ
+    
+    // --- リソース管理用のプロパティ --- 
+    private managedObjects: Map<string, THREE.Object3D> = new Map(); // IDと3Dオブジェクトを紐付けて管理
+    
+    // --- イベント処理用のプロパティ ---
+    private resizeHandler: (() => void) | null = null; // リサイズ処理の関数を保持
 
-    // シーンの作成
-    this.scene = new THREE.Scene();
-    this.scene.background = mergedConfig.scene.background;
-
-    // レンダラーの作成
-    this.renderer = new THREE.WebGLRenderer(mergedConfig.renderer);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-
-    // 3Dオブジェクトの作成
-    this.cube = this.createCube();
-    this.scene.add(this.cube);
-
-    // イベントリスナーの設定
-    this.setupEventListeners();
-  }
-}
-```
-
-### 設定のマージ機能
-
-```typescript
-/**
- * 設定のマージ（型安全）
- * デフォルト設定とユーザー設定を安全に結合
- */
-private mergeConfig(defaultConfig: SceneConfig, userConfig: Partial<SceneConfig>): SceneConfig {
-  return {
-    camera: { ...defaultConfig.camera, ...userConfig.camera },
-    renderer: { ...defaultConfig.renderer, ...userConfig.renderer },
-    scene: { ...defaultConfig.scene, ...userConfig.scene }
-  };
-}
-```
-
-`Partial<T>`型を使用することで、ユーザーは必要な設定のみを指定できます。
-
-## 🎲 3Dオブジェクトの作成
-
-型を明示的に指定して、安全な3Dオブジェクトを作成します。
-
-```typescript
-/**
- * キューブの作成（型明示）
- * TypeScriptで明示的に型を指定した3Dオブジェクトの作成
- */
-private createCube(): THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial> {
-  // 1×1×1のボックスジオメトリを作成
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  
-  // 緑色の基本マテリアルを作成
-  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-  
-  // ジオメトリとマテリアルからメッシュを作成
-  return new THREE.Mesh(geometry, material);
-}
-```
-
-### ジオメトリとマテリアルの理解
-
-- **Geometry（ジオメトリ）**: 3Dオブジェクトの形状・構造
-- **Material（マテリアル）**: 3Dオブジェクトの材質・見た目
-- **Mesh（メッシュ）**: ジオメトリとマテリアルを組み合わせた3Dオブジェクト
-
-## 🖱️ イベントハンドリング
-
-ウィンドウのリサイズに対応する機能を実装します。
-
-```typescript
-/**
- * イベントリスナーの設定
- */
-private setupEventListeners(): void {
-  window.addEventListener('resize', this.onWindowResize.bind(this));
-}
-
-/**
- * ウィンドウリサイズ処理
- * カメラとレンダラーを新しいサイズに合わせる
- */
-private onWindowResize(): void {
-  // カメラのアスペクト比を更新
-  this.camera.aspect = window.innerWidth / window.innerHeight;
-  this.camera.updateProjectionMatrix();
-  
-  // レンダラーのサイズを更新
-  this.renderer.setSize(window.innerWidth, window.innerHeight);
-}
-```
-
-### `bind(this)`の重要性
-
-```typescript
-// ❌ 間違った方法: thisが変わってしまう
-window.addEventListener('resize', this.onWindowResize);
-
-// ✅ 正しい方法: thisを固定
-window.addEventListener('resize', this.onWindowResize.bind(this));
-
-// ✅ アロー関数を使用する方法
-window.addEventListener('resize', () => this.onWindowResize());
-```
-
-## 🔄 アニメーションループ
-
-3Dシーンに動きを与えるアニメーション機能を実装します。
-
-```typescript
-/**
- * アニメーションループ
- * ブラウザの画面更新と同期してアニメーションを実行
- */
-private animate(): void {
-  // 次のフレームでanimate関数を再度呼び出し
-  this.animationId = requestAnimationFrame(this.animate.bind(this));
-  
-  // キューブの回転アニメーション
-  this.cube.rotation.x += 0.01;
-  this.cube.rotation.y += 0.01;
-
-  // シーンをレンダリング
-  this.renderer.render(this.scene, this.camera);
-}
-
-/**
- * シーンの開始
- */
-public start(): void {
-  // DOMにcanvas要素を追加
-  if (!document.body.contains(this.renderer.domElement)) {
-    document.body.appendChild(this.renderer.domElement);
-  }
-  
-  // アニメーション開始
-  this.animate();
-}
-
-/**
- * シーンの停止
- */
-public stop(): void {
-  if (this.animationId !== null) {
-    cancelAnimationFrame(this.animationId);
-    this.animationId = null;
-  }
-}
-```
-
-## 🧹 リソース管理とクリーンアップ
-
-メモリリークを防ぐために、適切なリソース管理を実装します。
-
-```typescript
-/**
- * リソースのクリーンアップ
- * メモリリークを防ぐために必要なリソースを解放
- */
-public dispose(): void {
-  // アニメーションを停止
-  this.stop();
-  
-  // ジオメトリとマテリアルの破棄
-  this.cube.geometry.dispose();
-  this.cube.material.dispose();
-  
-  // レンダラーの破棄
-  this.renderer.dispose();
-  
-  // DOM要素の削除
-  if (document.body.contains(this.renderer.domElement)) {
-    document.body.removeChild(this.renderer.domElement);
-  }
-  
-  // イベントリスナーの削除
-  window.removeEventListener('resize', this.onWindowResize.bind(this));
-}
-```
-
-### リソース管理の重要性
-
-Three.jsオブジェクトは、適切に破棄しないとメモリリークの原因となります：
-
-- **Geometry**: 頂点データなどの大量のメモリを使用
-- **Material**: テクスチャやシェーダーのデータを保持
-- **Renderer**: WebGLコンテキストを管理
-
-## 🎮 便利なメソッドの追加
-
-シーンを操作するための便利なメソッドを実装します。
-
-```typescript
-/**
- * キューブの色を変更
- * Three.jsのColorRepresentation型を使用して型安全性を確保
- */
-public setCubeColor(color: THREE.ColorRepresentation): void {
-  this.cube.material.color.set(color);
-}
-
-/**
- * カメラ位置の設定
- * 3つの数値を受け取ってカメラ位置を変更
- */
-public setCameraPosition(x: number, y: number, z: number): void {
-  this.camera.position.set(x, y, z);
-}
-
-/**
- * シーンの統計情報を取得
- */
-public getSceneInfo(): {
-  objects: number;
-  triangles: number;
-  vertices: number;
-} {
-  let triangles = 0;
-  let vertices = 0;
-  
-  this.scene.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
-      const geometry = object.geometry;
-      if (geometry.index) {
-        triangles += geometry.index.count / 3;
-      } else {
-        triangles += geometry.attributes.position.count / 3;
-      }
-      vertices += geometry.attributes.position.count;
+    /**
+     * コンストラクタ：クラスが `new` で作成されるときに呼ばれる処理
+     * @param userConfig ユーザーが指定するカスタム設定（省略可能）
+     */
+    constructor(userConfig: Partial<FoundationSceneConfig> = {}) {
+        // ユーザー設定とデフォルト設定をマージ（統合）する
+        this.config = this.mergeConfig(DEFAULT_CONFIG, userConfig);
+        
+        // コア要素を初期化
+        this.camera = this.createCamera(this.config.camera);
+        this.scene = this.createScene(this.config.scene);
+        this.renderer = this.createRenderer(this.config.renderer);
+        
+        // その他の初期化処理を実行
+        this.initialize();
     }
-  });
-  
-  return {
-    objects: this.scene.children.length,
-    triangles: Math.floor(triangles),
-    vertices
-  };
+
+    /**
+     * 設定をマージするプライベートメソッド
+     */
+    private mergeConfig(defaultConfig: FoundationSceneConfig, userConfig: Partial<FoundationSceneConfig>): FoundationSceneConfig {
+        // スプレッド構文(...)を使って、ユーザー設定でデフォルト設定を上書きする
+        return {
+            ...defaultConfig,
+            ...userConfig,
+            camera: { ...defaultConfig.camera, ...userConfig.camera },
+            renderer: { ...defaultConfig.renderer, ...userConfig.renderer },
+            scene: { ...defaultConfig.scene, ...userConfig.scene },
+        };
+    }
+
+    /**
+     * 設定に基づいてカメラを作成するプライベートメソッド
+     */
+    private createCamera(config: CameraConfig): THREE.Camera {
+        let camera: THREE.Camera;
+        if (config.type === 'perspective') {
+            // 人間の視界に近い、遠近感のあるカメラ
+            camera = new THREE.PerspectiveCamera(config.fov, config.aspect, config.near, config.far);
+        } else {
+            // 平行投影で、遠近感のないカメラ（設計図や2Dゲームなどで使用）
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, config.near, config.far);
+        }
+        camera.position.copy(config.position);
+        if (config.target) {
+            camera.lookAt(config.target);
+        }
+        return camera;
+    }
+
+    /**
+     * 設定に基づいてシーンを作成するプライベートメソッド
+     */
+    private createScene(config: SceneConfig): THREE.Scene {
+        const scene = new THREE.Scene();
+        if (config.background) {
+            scene.background = config.background;
+        }
+        if (config.fog) {
+            scene.fog = new THREE.Fog(config.fog.color, config.fog.near, config.fog.far);
+        }
+        return scene;
+    }
+
+    /**
+     * 設定に基づいてレンダラーを作成するプライベートメソッド
+     */
+    private createRenderer(config: RendererConfig): THREE.WebGLRenderer {
+        const renderer = new THREE.WebGLRenderer({
+            antialias: config.antialias,
+            alpha: config.alpha
+        });
+        renderer.setPixelRatio(window.devicePixelRatio); // デバイスの解像度に合わせて綺麗に表示
+        renderer.setSize(window.innerWidth, window.innerHeight); // 画面いっぱいに表示
+        renderer.shadowMap.enabled = config.shadowMap.enabled;
+        renderer.shadowMap.type = config.shadowMap.type;
+        return renderer;
+    }
+
+    /**
+     * DOMへの追加やイベントリスナー設定などの初期化処理
+     */
+    private initialize(): void {
+        if (this.isInitialized) return; // 既に初期化済みなら何もしない
+
+        // レンダラーの描画領域(canvas)をHTMLのbodyに追加
+        const container = this.config.container || document.body;
+        container.appendChild(this.renderer.domElement);
+        
+        // 自動リサイズが有効なら、リサイズイベントを設定
+        if (this.config.autoResize) {
+            this.setupResizeHandler();
+        }
+        
+        this.isInitialized = true;
+        console.log("FoundationScene has been initialized.");
+    }
+
+    /**
+     * ウィンドウリサイズ時の処理を設定するプライベートメソッド
+     */
+    private setupResizeHandler(): void {
+        this.resizeHandler = () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            // カメラのアスペクト比を更新
+            if (this.camera instanceof THREE.PerspectiveCamera) {
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix(); // カメラの変更を適用
+            }
+            
+            // レンダラーのサイズを更新
+            this.renderer.setSize(width, height);
+        };
+        window.addEventListener('resize', this.resizeHandler);
+    }
+
+    /**
+     * シーンにオブジェクトを追加するメソッド (外部から利用可能)
+     * @param object 追加するThree.jsのオブジェクト
+     * @param id 管理用のユニークなID（省略可能）
+     * @returns オブジェクトの管理ID
+     */
+    public addObject(object: THREE.Object3D, id?: string): string {
+        const objectId = id || object.uuid; // IDがなければオブジェクト固有のUUIDを利用
+        this.scene.add(object);
+        this.managedObjects.set(objectId, object);
+        console.log(`Object added with ID: ${objectId}`);
+        return objectId;
+    }
+
+    /**
+     * シーンからオブジェクトを削除するメソッド (外部から利用可能)
+     * @param id 削除するオブジェクトの管理ID
+     * @returns 削除に成功したかどうか
+     */
+    public removeObject(id: string): boolean {
+        const object = this.managedObjects.get(id);
+        if (object) {
+            this.scene.remove(object);
+            this.managedObjects.delete(id);
+            console.log(`Object removed with ID: ${id}`);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * アニメーションループを開始するメソッド
+     */
+    public startAnimation(): void {
+        if (this.animationId !== null) return; // 既に開始済みなら何もしない
+        
+        const animate = (): void => {
+            this.animationId = requestAnimationFrame(animate);
+            
+            // ここでオブジェクトの更新処理などを行う（後の章で実装）
+            
+            this.renderer.render(this.scene, this.camera);
+        };
+        
+        animate();
+        console.log("Animation started.");
+    }
+
+    /**
+     * アニメーションループを停止するメソッド
+     */
+    public stopAnimation(): void {
+        if (this.animationId !== null) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+            console.log("Animation stopped.");
+        }
+    }
+
+    /**
+     * シーンを破棄し、リソースを解放するメソッド
+     */
+    public dispose(): void {
+        if (this.isDisposed) return;
+
+        this.stopAnimation();
+
+        // 管理しているオブジェクトを全てシーンから削除
+        this.managedObjects.forEach(obj => this.scene.remove(obj));
+        this.managedObjects.clear();
+
+        // レンダラーと関連リソースを破棄
+        this.renderer.dispose();
+        if (this.renderer.domElement.parentNode) {
+            this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+        }
+
+        // イベントリスナーを削除
+        if (this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+        }
+
+        this.isDisposed = true;
+        console.log("FoundationScene disposed successfully.");
+    }
 }
 ```
+**💡 ここでの学び:**
+- **カプセル化:** `private`なメソッドやプロパティを使い、クラスの内部実装を隠蔽しています。これにより、クラスの利用者は`public`なメソッド（`addObject`, `startAnimation`など）だけを意識すればよく、安全で使いやすい部品になります。
+- **ライフサイクル管理:** `initialize`, `dispose`メソッドを用意することで、シーンの生成から破棄までの一連の流れを明確に管理できます。これはメモリリークを防ぐ上で非常に重要です。
 
-## 💡 使用例
+---
 
-作成したBasicSceneクラスの使用方法：
+## 🎯 プロジェクト2: 作成した基盤クラスを使ってシーンを動かす
 
+### Step 2-1: 基盤クラスを実際に使ってみる
+
+`FoundationScene`クラスを使って、具体的な3Dシーンを作成します。立方体（Cube）を一つ表示してみましょう。
+
+**examples/basic-foundation-demo.ts**
 ```typescript
-// 基本的な使用方法
-const scene = new BasicScene();
-scene.start();
+// examples/basic-foundation-demo.ts - FoundationSceneクラスの実用例
+import * as THREE from 'three';
+import { FoundationScene } from '../src/foundation-scene';
 
-// カスタム設定での作成
-const customScene = new BasicScene({
-  camera: {
-    fov: 60,
-    position: new THREE.Vector3(2, 2, 2)
-  },
-  scene: {
-    background: new THREE.Color(0x0000ff)
-  }
-});
+/**
+ * デモシーンを管理するクラス
+ */
+class BasicFoundationDemo {
+    private foundationScene: FoundationScene;
 
-customScene.start();
+    constructor() {
+        // 1. FoundationSceneのインスタンスを作成
+        //    ここではデフォルト設定をそのまま利用する
+        this.foundationScene = new FoundationScene();
 
-// 動的な変更
-customScene.setCubeColor(0xff0000);
-customScene.setCameraPosition(0, 0, 10);
+        // 2. シーンに必要なオブジェクトを作成・追加
+        this.createSceneContent();
 
-// 統計情報の表示
-console.log(customScene.getSceneInfo());
+        // 3. アニメーションを開始
+        this.foundationScene.startAnimation();
+    }
 
-// リソースのクリーンアップ
-// customScene.dispose();
+    /**
+     * シーンに表示する3Dオブジェクトを作成し、追加するメソッド
+     */
+    private createSceneContent(): void {
+        // --- ライトの作成 ---
+        // 環境光：シーン全体を均一に照らすライト
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.foundationScene.addObject(ambientLight, 'ambientLight');
+
+        // 平行光：一方向から照らす、太陽光のようなライト
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 7.5);
+        directionalLight.castShadow = true; // このライトは影を落とす
+        this.foundationScene.addObject(directionalLight, 'directionalLight');
+
+        // --- オブジェクトの作成 ---
+        // BoxGeometry: 立方体の形状データ
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        // MeshStandardMaterial: PBR（物理ベースレンダリング）に対応したリアルな質感のマテリアル
+        const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 }); // 緑色
+        // Mesh: 形状(Geometry)と材質(Material)を組み合わせた3Dオブジェクト
+        const cube = new THREE.Mesh(geometry, material);
+        cube.castShadow = true; // このオブジェクトは影を落とす
+        
+        // 作成したキューブをシーンに追加
+        this.foundationScene.addObject(cube, 'myCube');
+
+        // --- 地面の作成 ---
+        const groundGeometry = new THREE.PlaneGeometry(10, 10);
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2; // X軸を中心に90度回転させて地面にする
+        ground.position.y = -2;
+        ground.receiveShadow = true; // このオブジェクトは影を受け取る
+        this.foundationScene.addObject(ground, 'ground');
+    }
+
+    /**
+     * デモを破棄するメソッド
+     */
+    public dispose(): void {
+        this.foundationScene.dispose();
+    }
+}
+
+// デモを実行
+const demo = new BasicFoundationDemo();
+
+console.log(`
+=== 基本的な基盤シーンデモ ===
+緑色のキューブと地面が表示されます。
+ウィンドウサイズを変更すると、シーンも追従してリサイズされます。
+`);
+
+// デバッグ用にグローバルスコープに公開
+(window as any).demo = demo;
 ```
 
-## 🎓 次のステップ
+### Step 2-2: HTMLファイルを作成してブラウザで確認
 
-基本シーンの作成を理解したら、より高度な機能に進みましょう。
+最後に、このTypeScriptを実行するためのHTMLファイルを作成します。
 
-**次の学習項目:**
-- [02. 型安全なオブジェクト作成](./02-typed-geometries.md)
-- Factory Patternの実装
-- Union Typesの活用
-- 複数オブジェクトの管理
+**index.html** (プロジェクトのルートに作成)
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Foundation Demo</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <!-- ViteがこのTypeScriptファイルを読み込んで実行します -->
+    <script type="module" src="/examples/basic-foundation-demo.ts"></script>
+</body>
+</html>
+```
 
-## 🔍 重要なポイント
+**実行方法:**
+1.  `package.json`の`scripts`に以下を追加します:
+    ```json
+    "scripts": {
+      "dev": "vite"
+    },
+    ```
+2.  ターミナルで以下のコマンドを実行します:
+    ```bash
+    npm run dev
+    ```
+3.  表示されたURL（例: `http://localhost:5173`）をブラウザで開きます。
 
-1. **型安全性**: インターフェースと明示的な型指定で安全なコード
-2. **クラス設計**: 責任の分離と再利用可能な設計
-3. **設定管理**: `Partial<T>`型でユーザビリティを向上
-4. **リソース管理**: メモリリークを防ぐ適切なクリーンアップ
-5. **イベント処理**: ブラウザイベントへの適切な対応
+---
 
-このBasicSceneクラスは、より複雑な3Dアプリケーションの基盤として活用できます。
+## 🎓 まとめ: 堅牢なシーン基盤の構築
+
+この章では、単に3Dオブジェクトを表示するだけでなく、将来の拡張性を見据えた「基盤クラス」を構築しました。
+
+### ✅ 作成したシステムのポイント
+1.  **型安全な設定システム:** `interface`を使い、安全で分かりやすい設定管理を実現しました。
+2.  **カプセル化されたクラス:** Three.jsの複雑な部分を`FoundationScene`クラスに隠蔽し、利用者は簡単なメソッドを呼ぶだけでシーンを操作できるようにしました。
+3.  **ライフサイクル管理:** `initialize`から`dispose`まで、シーンのライフサイクルを管理し、リソースリークを防ぐ仕組みを導入しました。
+
+### ✅ 学んだ重要概念
+- **関心の分離:** 設定、コアロジック、デモ実装をそれぞれ別のファイルに分離し、コードの見通しを良くしました。
+- **型安全性:** TypeScriptの型システムをフル活用し、実行時エラーを未然に防ぎました。
+- **再利用性:** `FoundationScene`クラスは、今後のどんなThree.jsプロジェクトでも再利用できる、強力な土台となります。
+
+## 🚀 次のステップ
+
+堅牢なシーンの基盤ができたので、次はいよいよ、この基盤の上で様々な3Dオブジェクトを効率的に作成する方法を学びます。
+
+**[02. 型安全なオブジェクト作成ファクトリー](./02-typed-geometries.md)** に進んで、より複雑なシーンを構築していきましょう！
