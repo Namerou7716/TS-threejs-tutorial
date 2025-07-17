@@ -204,6 +204,9 @@ export class FoundationScene {
     // --- リソース管理用のプロパティ --- 
     private managedObjects: Map<string, THREE.Object3D> = new Map(); // シーンに追加されたオブジェクトをIDで管理
     
+    // --- アニメーション管理用のプロパティ ---
+    private animatedObjects: Map<string, (deltaTime: number) => void> = new Map(); // アニメーション関数をIDで管理
+    
     // --- イベント処理用のプロパティ ---
     private resizeHandler: (() => void) | null = null; // ウィンドウリサイズ処理の関数を保持
 
@@ -406,7 +409,13 @@ export class FoundationScene {
             // これを再帰的に呼び出すことで、ブラウザの描画サイクルに合わせたスムーズなアニメーションループが実現されます。
             this.animationId = requestAnimationFrame(animate);
             
-            // ここでオブジェクトの更新処理などを行う（後の章で実装されます）
+            // 時間の取得と更新処理
+            const deltaTime = this.clock.getDelta(); // 前のフレームからの経過時間（秒）を取得
+            
+            // 登録されたアニメーション関数を実行
+            this.animatedObjects.forEach(animationFn => {
+                animationFn(deltaTime);
+            });
             
             // `renderer.render(scene, camera)`: 指定したシーンを、指定したカメラの視点から描画します。
             // この処理が毎フレーム実行されることで、3Dシーンがアニメーションとして見えるようになります。
@@ -431,6 +440,30 @@ export class FoundationScene {
     }
 
     /**
+     * オブジェクトにアニメーション関数を登録するパブリックメソッド。
+     * 毎フレーム実行される関数を登録することで、オブジェクトの回転、移動、スケールなどのアニメーションを実現できます。
+     * @param id アニメーションを識別するためのユニークなID
+     * @param animationFn 毎フレーム実行されるアニメーション関数。deltaTime（前フレームからの経過時間）が引数として渡されます。
+     */
+    public addAnimation(id: string, animationFn: (deltaTime: number) => void): void {
+        this.animatedObjects.set(id, animationFn);
+        console.log(`Animation added with ID: ${id}`);
+    }
+
+    /**
+     * 登録されたアニメーション関数を削除するパブリックメソッド。
+     * @param id 削除するアニメーションのID
+     * @returns 削除に成功した場合は`true`、指定されたIDのアニメーションが見つからなかった場合は`false`
+     */
+    public removeAnimation(id: string): boolean {
+        const removed = this.animatedObjects.delete(id);
+        if (removed) {
+            console.log(`Animation removed with ID: ${id}`);
+        }
+        return removed;
+    }
+
+    /**
      * シーンを完全に破棄し、使用していたリソース（メモリ、WebGLコンテキストなど）を解放するパブリックメソッド。
      * アプリケーション終了時や、シーンを切り替える際などに呼び出すことで、メモリリークを防ぎます。
      */
@@ -442,6 +475,9 @@ export class FoundationScene {
         // 管理しているオブジェクトを全てシーンから削除します。
         this.managedObjects.forEach(obj => this.scene.remove(obj));
         this.managedObjects.clear(); // 管理Mapもクリア
+
+        // 登録されているアニメーション関数も全てクリアします。
+        this.animatedObjects.clear();
 
         // `renderer.dispose()`: レンダラーが使用しているWebGLコンテキストと、
         // それに関連する全てのGPUリソースを解放します。非常に重要です。
@@ -544,6 +580,23 @@ class BasicFoundationDemo {
         // `mesh.receiveShadow = true`: このオブジェクトが他のオブジェクトから落とされた影を受け取るように設定します。
         ground.receiveShadow = true;
         this.foundationScene.addObject(ground, 'ground');
+
+        // --- アニメーションの追加 ---
+        // キューブの回転アニメーションを登録します。
+        this.foundationScene.addAnimation('cubeRotation', (deltaTime) => {
+            // `deltaTime`は前のフレームからの経過時間（秒）です。
+            // これを使うことで、フレームレートに関係なく一定の速度でアニメーションが実行されます。
+            cube.rotation.x += deltaTime * 1; // X軸周りに1ラジアン/秒で回転
+            cube.rotation.y += deltaTime * 0.5; // Y軸周りに0.5ラジアン/秒で回転
+        });
+
+        // キューブの上下移動アニメーションも追加します。
+        let time = 0; // アニメーション用の時間変数
+        this.foundationScene.addAnimation('cubeFloat', (deltaTime) => {
+            time += deltaTime;
+            // `Math.sin()`を使って滑らかな上下移動を作成します。
+            cube.position.y = Math.sin(time * 2) * 0.5; // 2Hz（1秒に2回）の頻度で上下に0.5単位移動
+        });
     }
 
     /**
@@ -558,8 +611,8 @@ class BasicFoundationDemo {
 const demo = new BasicFoundationDemo();
 
 console.log(`
-=== 基本的な基盤シーンデモ ===
-緑色のキューブと地面が表示されます。
+=== 基本的な基盤シーンデモ（アニメーション付き） ===
+緑色のキューブが回転しながら上下に浮遊し、地面に影を落とします。
 ウィンドウサイズを変更すると、シーンも追従してリサイズされます。
 `);
 
@@ -571,6 +624,8 @@ console.log(`
 **ここでの学び:**
 -   `FoundationScene`クラスを使うことで、Three.jsの基本的なセットアップ（シーン、カメラ、レンダラーの作成と設定）が非常に簡潔に行えることを確認しました。
 -   `addObject`メソッドを通じて、ライトや3Dオブジェクトをシーンに簡単に追加できることを学びました。
+-   `addAnimation`メソッドを使って、オブジェクトの回転や移動などのアニメーションを簡単に実装できることを理解しました。
+-   `deltaTime`を使った時間ベースのアニメーションにより、フレームレートに依存しない滑らかな動きを実現する方法を学びました。
 -   `THREE.AmbientLight`と`THREE.DirectionalLight`を使ってシーンを照らし、`castShadow`と`receiveShadow`プロパティで影を有効にする方法を理解しました。
 -   `THREE.BoxGeometry`と`THREE.MeshStandardMaterial`を使って基本的な3Dオブジェクトを作成し、`position`や`rotation`プロパティで配置や向きを調整する方法を学びました。
 
@@ -620,7 +675,7 @@ console.log(`
     ```
 2.  ターミナルに表示されたURL（例: `http://localhost:5173`）をブラウザで開きます。
 
-ブラウザに緑色の回転するキューブと、その下に影を落とす地面が表示されれば成功です。ウィンドウのサイズを変更すると、シーンが自動的にリサイズされることも確認してみてください。
+ブラウザに緑色のキューブが回転しながら上下に浮遊し、その下の地面に影を落とすアニメーションが表示されれば成功です。ウィンドウのサイズを変更すると、シーンが自動的にリサイズされることも確認してみてください。
 
 ---
 

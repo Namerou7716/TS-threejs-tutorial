@@ -4,7 +4,16 @@
  */
 
 import * as THREE from 'three';
-import type { /* ...imports... */ } from '../types/geometry-types';
+import type {
+  GeometryType,
+  MaterialType,
+  GeometryConfig,
+  MaterialConfig,
+  GeometryInstance,
+  MaterialInstance,
+  RequiredObjectConfig,
+  ObjectConfig
+} from '../types/geometry-types';
 
 // ===================================================================
 // Part 1: The "Parts" Factory (部品工場)
@@ -33,7 +42,86 @@ export class TypedGeometryFactory {
         // new THREE.ConeGeometry(radius, height, radialSegments): 円錐の形状を作成。
         return new THREE.ConeGeometry(cfg.radius ?? 1, cfg.height ?? 1, cfg.radialSegments ?? 8) as GeometryInstance<T>;
       }
-      // ... other geometries ...
+      case 'cylinder': {
+        const cfg = config as any;
+        // new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments): 円柱の形状を作成。
+        return new THREE.CylinderGeometry(
+          cfg.radiusTop ?? 1,
+          cfg.radiusBottom ?? 1,
+          cfg.height ?? 1,
+          cfg.radialSegments ?? 8
+        ) as GeometryInstance<T>;
+      }
+      case 'torus': {
+        const cfg = config as any;
+        // new THREE.TorusGeometry(radius, tube, radialSegments, tubularSegments): ドーナツ型の形状を作成。
+        return new THREE.TorusGeometry(
+          cfg.radius ?? 1,
+          cfg.tube ?? 0.4,
+          cfg.radialSegments ?? 8,
+          cfg.tubularSegments ?? 6
+        ) as GeometryInstance<T>;
+      }
+      case 'plane': {
+        const cfg = config as any;
+        // new THREE.PlaneGeometry(width, height): 平面の形状を作成。
+        return new THREE.PlaneGeometry(
+          cfg.width ?? 1,
+          cfg.height ?? 1
+        ) as GeometryInstance<T>;
+      }
+      case 'dodecahedron': {
+        const cfg = config as any;
+        // new THREE.DodecahedronGeometry(radius, detail): 十二面体の形状を作成。
+        return new THREE.DodecahedronGeometry(
+          cfg.radius ?? 1,
+          cfg.detail ?? 0
+        ) as GeometryInstance<T>;
+      }
+      case 'icosahedron': {
+        const cfg = config as any;
+        // new THREE.IcosahedronGeometry(radius, detail): 二十面体の形状を作成。
+        return new THREE.IcosahedronGeometry(
+          cfg.radius ?? 1,
+          cfg.detail ?? 0
+        ) as GeometryInstance<T>;
+      }
+      case 'octahedron': {
+        const cfg = config as any;
+        // new THREE.OctahedronGeometry(radius, detail): 八面体の形状を作成。
+        return new THREE.OctahedronGeometry(
+          cfg.radius ?? 1,
+          cfg.detail ?? 0
+        ) as GeometryInstance<T>;
+      }
+      case 'tetrahedron': {
+        const cfg = config as any;
+        // new THREE.TetrahedronGeometry(radius, detail): 四面体の形状を作成。
+        return new THREE.TetrahedronGeometry(
+          cfg.radius ?? 1,
+          cfg.detail ?? 0
+        ) as GeometryInstance<T>;
+      }
+      case 'ring': {
+        const cfg = config as any;
+        // new THREE.RingGeometry(innerRadius, outerRadius, thetaSegments, phiSegments): リング（輪）の形状を作成。
+        return new THREE.RingGeometry(
+          cfg.innerRadius ?? 0.5,
+          cfg.outerRadius ?? 1,
+          cfg.thetaSegments ?? 8,
+          cfg.phiSegments ?? 1
+        ) as GeometryInstance<T>;
+      }
+      case 'circle': {
+        const cfg = config as any;
+        // new THREE.CircleGeometry(radius, segments, thetaStart, thetaLength): 円形の形状を作成。
+        return new THREE.CircleGeometry(
+          cfg.radius ?? 1,
+          cfg.segments ?? 8,
+          cfg.thetaStart ?? 0,
+          cfg.thetaLength ?? Math.PI * 2
+        ) as GeometryInstance<T>;
+      }
       default: {
         const _exhaustiveCheck: never = type;
         throw new Error(`Unsupported geometry type: ${String(_exhaustiveCheck)}`);
@@ -71,7 +159,35 @@ export class TypedGeometryFactory {
           metalness: cfg.metalness ?? 0.5,     // 金属質 (0:非金属, 1:金属)
         }) as MaterialInstance<T>;
       }
-      // ... other materials ...
+      case 'physical': {
+        // new THREE.MeshPhysicalMaterial({ ... }): StandardMaterialの拡張版で、より高度な物理的プロパティを持つ。
+        return new THREE.MeshPhysicalMaterial({
+          color: cfg.color ?? 0xffffff,
+          roughness: cfg.roughness ?? 0.5,
+          metalness: cfg.metalness ?? 0.5,
+        }) as MaterialInstance<T>;
+      }
+      case 'toon': {
+        // new THREE.MeshToonMaterial({ ... }): トゥーンシェーディング（アニメ調）のマテリアル。
+        return new THREE.MeshToonMaterial({
+          color: cfg.color ?? 0xffffff,
+        }) as MaterialInstance<T>;
+      }
+      case 'normal': {
+        // new THREE.MeshNormalMaterial({ ... }): 法線ベクトルをRGB色として表示するマテリアル（デバッグ用）。
+        return new THREE.MeshNormalMaterial() as MaterialInstance<T>;
+      }
+      case 'depth': {
+        // new THREE.MeshDepthMaterial({ ... }): 深度をグレースケールで表示するマテリアル（デバッグ用）。
+        return new THREE.MeshDepthMaterial() as MaterialInstance<T>;
+      }
+      case 'wireframe': {
+        // new THREE.MeshBasicMaterial({ wireframe: true }): ワイヤーフレーム表示専用のマテリアル。
+        return new THREE.MeshBasicMaterial({
+          color: cfg.color ?? 0xffffff,
+          wireframe: true
+        }) as MaterialInstance<T>;
+      }
       default: {
         const _exhaustiveCheck: never = type;
         throw new Error(`Unsupported material type: ${String(_exhaustiveCheck)}`);
@@ -100,7 +216,37 @@ export class TypedObjectFactory {
     return mesh;
   }
 
-  // (createMeshes and applyTransform)
+  static createMeshes(configs: RequiredObjectConfig[]): THREE.Mesh[] {
+    return configs.map(config => this.createMesh(config));
+  }
+  
+  private static applyTransform(object: THREE.Object3D, transform: ObjectConfig['transform']): void {
+    if (!transform) return;
+    // object.position.set(x, y, z): オブジェクトの3D空間における位置を一度に設定。
+    if (transform.position) {
+      object.position.set(
+        transform.position.x ?? 0,
+        transform.position.y ?? 0,
+        transform.position.z ?? 0
+      );
+    }
+    // object.rotation.set(x, y, z): オブジェクトの回転をラジアン単位で設定。
+    if (transform.rotation) {
+      object.rotation.set(
+        transform.rotation.x ?? 0,
+        transform.rotation.y ?? 0,
+        transform.rotation.z ?? 0
+      );
+    }
+    // object.scale.set(x, y, z): オブジェクトの拡大・縮小率をX, Y, Z軸それぞれに設定。
+    if (transform.scale) {
+      object.scale.set(
+        transform.scale.x ?? 1,
+        transform.scale.y ?? 1,
+        transform.scale.z ?? 1
+      );
+    }
+  }
 }
 
 // ===================================================================
@@ -108,7 +254,30 @@ export class TypedObjectFactory {
 // ===================================================================
 
 export const TypedHelpers = {
-  // (validateColor and createVector3)
+  /**
+   * 様々な形式の色の入力を、安全にTHREE.Colorオブジェクトに変換します。
+   * @param color 色の入力 (例: 0xff0000, 'red', '#ff0000')
+   * @returns THREE.Colorインスタンス。無効な場合は白を返す。
+   */
+  validateColor(color: unknown): THREE.Color {
+    try {
+      return new THREE.Color(color as THREE.ColorRepresentation);
+    } catch {
+      console.warn('Invalid color provided, using default white');
+      return new THREE.Color(0xffffff);
+    }
+  },
+  
+  /**
+   * 数値以外の値（NaN, Infinityなど）が入らない、安全なTHREE.Vector3を作成します。
+   */
+  createVector3(x = 0, y = 0, z = 0): THREE.Vector3 {
+    return new THREE.Vector3(
+      Number.isFinite(x) ? x : 0,
+      Number.isFinite(y) ? y : 0,
+      Number.isFinite(z) ? z : 0
+    );
+  },
   
   cloneMesh<T extends THREE.Mesh>(mesh: T): T {
     // mesh.clone(): オブジェクトのトランスフォーム（位置、回転、スケール）や名前などの基本情報をコピーする。

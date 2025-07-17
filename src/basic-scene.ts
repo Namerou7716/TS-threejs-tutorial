@@ -8,7 +8,73 @@
 
 import * as THREE from 'three';
 
-// (インターフェースとデフォルト設定は省略)
+/**
+ * カメラ設定のインターフェース
+ * Three.jsのPerspectiveCameraを作成するために必要な設定項目を定義します。
+ */
+interface CameraConfig {
+  /** 視野角（度）: カメラが見る範囲の角度。75度は一般的な値 */
+  fov: number;
+  /** アスペクト比: 通常は画面の幅/高さ */
+  aspect: number;
+  /** 近クリッピング面: カメラに映る最も手前の距離 */
+  near: number;
+  /** 遠クリッピング面: カメラに映る最も遠い距離 */
+  far: number;
+  /** カメラの3D空間での位置 */
+  position: THREE.Vector3;
+}
+
+/**
+ * レンダラー設定のインターフェース
+ * WebGLRendererの初期化に必要な設定項目を定義します。
+ */
+interface RendererConfig {
+  /** アンチエイリアス: 輪郭のギザギザを滑らかにするか */
+  antialias: boolean;
+  /** アルファチャンネル: 背景を透明にするか */
+  alpha: boolean;
+}
+
+/**
+ * シーン設定のインターフェース
+ * Three.jsのSceneの初期化に必要な設定項目を定義します。
+ */
+interface SceneObjectConfig {
+  /** シーンの背景色 */
+  background: THREE.Color;
+}
+
+/**
+ * BasicSceneクラス全体の設定インターフェース
+ * すべての設定項目をまとめたトップレベルの設定です。
+ */
+interface SceneConfig {
+  camera: CameraConfig;
+  renderer: RendererConfig;
+  scene: SceneObjectConfig;
+}
+
+/**
+ * デフォルト設定値
+ * ユーザーが設定を省略した場合に使用される標準的な値です。
+ */
+const defaultConfig: SceneConfig = {
+  camera: {
+    fov: 75,
+    aspect: window.innerWidth / window.innerHeight,
+    near: 0.1,
+    far: 1000,
+    position: new THREE.Vector3(0, 0, 5)
+  },
+  renderer: {
+    antialias: true,
+    alpha: false
+  },
+  scene: {
+    background: new THREE.Color(0x000000) // 黒色の背景
+  }
+};
 
 /**
  * 基本的なThree.jsシーンを管理するクラス。
@@ -148,7 +214,9 @@ export class BasicScene {
 
   public setCubeColor(color: THREE.ColorRepresentation): void {
     // material.color.set(color): マテリアルの色を新しい色に設定する。
-    this.cube.material.color.set(color);
+    if (this.cube.material instanceof THREE.MeshBasicMaterial) {
+      this.cube.material.color.set(color);
+    }
   }
 
   public setCameraPosition(x: number, y: number, z: number): void {

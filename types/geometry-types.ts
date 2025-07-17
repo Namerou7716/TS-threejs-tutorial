@@ -97,6 +97,20 @@ export interface ConeGeometryConfig {
 }
 
 /**
+ * 円柱ジオメトリの設定
+ */
+export interface CylinderGeometryConfig {
+  radiusTop?: number;
+  radiusBottom?: number;
+  height?: number;
+  radialSegments?: number;
+  heightSegments?: number;
+  openEnded?: boolean;
+  thetaStart?: number;
+  thetaLength?: number;
+}
+
+/**
  * トーラスジオメトリの設定
  */
 export interface TorusGeometryConfig {
@@ -108,16 +122,61 @@ export interface TorusGeometryConfig {
 }
 
 /**
+ * 平面ジオメトリの設定
+ */
+export interface PlaneGeometryConfig {
+  width?: number;
+  height?: number;
+  widthSegments?: number;
+  heightSegments?: number;
+}
+
+/**
+ * リングジオメトリの設定
+ */
+export interface RingGeometryConfig {
+  innerRadius?: number;
+  outerRadius?: number;
+  thetaSegments?: number;
+  phiSegments?: number;
+  thetaStart?: number;
+  thetaLength?: number;
+}
+
+/**
+ * 円ジオメトリの設定
+ */
+export interface CircleGeometryConfig {
+  radius?: number;
+  segments?: number;
+  thetaStart?: number;
+  thetaLength?: number;
+}
+
+/**
+ * 多面体ジオメトリの共通設定
+ */
+export interface PolyhedronGeometryConfig {
+  radius?: number;
+  detail?: number;
+}
+
+/**
  * 統合ジオメトリ設定型（Union Types使用）
  */
 export type GeometryConfig = 
   | { type: 'box'; config: BoxGeometryConfig }
   | { type: 'sphere'; config: SphereGeometryConfig }
   | { type: 'cone'; config: ConeGeometryConfig }
+  | { type: 'cylinder'; config: CylinderGeometryConfig }
   | { type: 'torus'; config: TorusGeometryConfig }
-  | { type: 'cylinder'; config: ConeGeometryConfig }
-  | { type: 'dodecahedron'; config: { radius?: number; detail?: number } }
-  | { type: 'plane'; config: { width?: number; height?: number } };
+  | { type: 'plane'; config: PlaneGeometryConfig }
+  | { type: 'ring'; config: RingGeometryConfig }
+  | { type: 'circle'; config: CircleGeometryConfig }
+  | { type: 'dodecahedron'; config: PolyhedronGeometryConfig }
+  | { type: 'icosahedron'; config: PolyhedronGeometryConfig }
+  | { type: 'octahedron'; config: PolyhedronGeometryConfig }
+  | { type: 'tetrahedron'; config: PolyhedronGeometryConfig };
 
 // ===========================================
 // マテリアル設定の型定義
@@ -168,6 +227,16 @@ export interface StandardMaterialConfig extends BaseMaterialConfig {
 }
 
 /**
+ * 物理マテリアル設定（Standardの拡張版）
+ */
+export interface PhysicalMaterialConfig extends StandardMaterialConfig {
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  transmission?: number;
+  thickness?: number;
+}
+
+/**
  * 統合マテリアル設定型
  */
 export type MaterialConfig = 
@@ -175,7 +244,10 @@ export type MaterialConfig =
   | { type: 'lambert'; config: LambertMaterialConfig }
   | { type: 'phong'; config: PhongMaterialConfig }
   | { type: 'standard'; config: StandardMaterialConfig }
+  | { type: 'physical'; config: PhysicalMaterialConfig }
+  | { type: 'toon'; config: BaseMaterialConfig }
   | { type: 'normal'; config: BaseMaterialConfig }
+  | { type: 'depth'; config: BaseMaterialConfig }
   | { type: 'wireframe'; config: BaseMaterialConfig };
 
 // ===========================================
@@ -239,6 +311,12 @@ export type GeometryInstance<T extends GeometryType> =
   T extends 'cylinder' ? THREE.CylinderGeometry :
   T extends 'torus' ? THREE.TorusGeometry :
   T extends 'plane' ? THREE.PlaneGeometry :
+  T extends 'ring' ? THREE.RingGeometry :
+  T extends 'circle' ? THREE.CircleGeometry :
+  T extends 'dodecahedron' ? THREE.DodecahedronGeometry :
+  T extends 'icosahedron' ? THREE.IcosahedronGeometry :
+  T extends 'octahedron' ? THREE.OctahedronGeometry :
+  T extends 'tetrahedron' ? THREE.TetrahedronGeometry :
   THREE.BufferGeometry;
 
 /**
@@ -249,7 +327,11 @@ export type MaterialInstance<T extends MaterialType> =
   T extends 'lambert' ? THREE.MeshLambertMaterial :
   T extends 'phong' ? THREE.MeshPhongMaterial :
   T extends 'standard' ? THREE.MeshStandardMaterial :
+  T extends 'physical' ? THREE.MeshPhysicalMaterial :
+  T extends 'toon' ? THREE.MeshToonMaterial :
   T extends 'normal' ? THREE.MeshNormalMaterial :
+  T extends 'depth' ? THREE.MeshDepthMaterial :
+  T extends 'wireframe' ? THREE.MeshBasicMaterial :
   THREE.Material;
 
 /**

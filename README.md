@@ -86,6 +86,23 @@ npm run type-check
 npm run lint
 ```
 
+### 🚀 クイックスタート
+
+初回セットアップ後、すぐに動作を確認したい場合は：
+
+```bash
+# 開発サーバーを起動
+npm run dev
+
+# ブラウザで http://localhost:8080 にアクセス
+# または直接 index.html をブラウザで開く
+```
+
+**動作確認のポイント：**
+- 緑色の立方体が回転しているか確認
+- コントロールパネルで色やカメラ位置を変更
+- ブラウザのコンソールでログを確認
+
 ### 🚨 トラブルシューティング
 
 **Q: npm installが失敗する**
@@ -114,7 +131,8 @@ threejs-typescript-tutorial/
 │   ├── 01-typescript-threejs-bridge.md # TS×Three.js連携
 │   ├── 01-basic-scene.md              # 基本シーン
 │   ├── 02-typed-geometries.md         # 型安全ファクトリー
-│   └── 03-class-based-scene.md        # 高度な設計パターン
+│   ├── 03-class-based-scene.md        # 高度な設計パターン
+│   └── FAQ.md                         # よくある質問集
 ├── src/                        # 💻 TypeScriptソースコード
 │   ├── basic-scene.ts          # 基本シーンクラス
 │   ├── typed-geometry-factory.ts # 型安全ファクトリー
@@ -136,6 +154,7 @@ threejs-typescript-tutorial/
 - **01-basic-scene.md**: 基本的な3Dシーンの作成
 - **02-typed-geometries.md**: 型安全なオブジェクト作成システム
 - **03-class-based-scene.md**: 高度な設計パターンの実装
+- **FAQ.md**: よくある質問と回答集
 
 **src/** - TypeScriptソースコード
 - **basic-scene.ts**: 基本シーンクラスの実装
