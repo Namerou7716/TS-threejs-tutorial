@@ -187,8 +187,291 @@ this.managedObjects.delete("cube1");             // オブジェクト削除
 
 ---
 
+## 🔧 TypeScript高度な型システム
+
+### Q6: Record型について
+
+**A:** Record型はオブジェクトの型を定義するTypeScriptの組み込みユーティリティ型です。
+
+#### 基本構文
+```typescript
+Record<Keys, Type>
+```
+
+#### 使用例
+```typescript
+// string型のキーと number型の値を持つオブジェクト
+const scores: Record<string, number> = {
+  alice: 85,
+  bob: 92,
+  charlie: 78
+};
+
+// geometry-types.tsでの使用例
+userData?: Record<string, unknown>;
+```
+
+#### 従来の方法との比較
+```typescript
+// 従来の方法（インデックスシグネチャ）
+type UserData1 = {
+  [key: string]: unknown;
+};
+
+// Record型を使った方法
+type UserData2 = Record<string, unknown>;
+// 両方とも同じ意味だが、Record型の方が読みやすい
+```
+
+---
+
+### Q7: unknown型について
+
+**A:** unknown型は「安全なany」として理解できる型です。
+
+#### any vs unknown
+```typescript
+// any: 何でも入れられて、何でもできる（危険）
+let anyValue: any = "hello";
+anyValue.toUpperCase(); // OK（実行時エラーなし）
+anyValue.foo.bar.baz;   // OK（実行時エラーの可能性）
+
+// unknown: 何でも入れられるが、使用前に型チェック必須（安全）
+let unknownValue: unknown = "hello";
+unknownValue.toUpperCase(); // Error: 型チェックが必要
+
+// 型チェック後なら使用可能
+if (typeof unknownValue === 'string') {
+  unknownValue.toUpperCase(); // OK
+}
+```
+
+#### 推奨される使用法
+```typescript
+// anyより常にunknownを使用
+function processData(data: unknown) {
+  if (typeof data === 'string') {
+    return data.toUpperCase();
+  }
+  return 'Invalid type';
+}
+```
+
+---
+
+### Q8: 条件型（Conditional Types）について
+
+**A:** 条件型は`T extends U ? X : Y`の構文で、型レベルでの条件分岐を可能にします。
+
+#### 基本構文
+```typescript
+T extends U ? X : Y
+```
+
+#### GeometryInstanceでの使用例
+```typescript
+export type GeometryInstance<T extends GeometryType> = 
+  T extends 'box' ? THREE.BoxGeometry :
+  T extends 'sphere' ? THREE.SphereGeometry :
+  T extends 'cone' ? THREE.ConeGeometry :
+  THREE.BufferGeometry;
+```
+
+#### 実際の活用
+```typescript
+// 型が自動的に決定される
+type BoxGeo = GeometryInstance<'box'>;     // THREE.BoxGeometry
+type SphereGeo = GeometryInstance<'sphere'>; // THREE.SphereGeometry
+```
+
+---
+
+### Q9: RequiredFields型について
+
+**A:** 指定したプロパティのみを必須にし、他はオプショナルのままにするユーティリティ型です。
+
+#### 構文と構成要素
+```typescript
+export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
+```
+
+#### 各パーツの解説
+- `keyof T`: 型Tの全プロパティ名
+- `Pick<T, K>`: 型Tから指定プロパティKを抽出
+- `Required<T>`: 型Tの全プロパティを必須化
+- `T & U`: 交差型（両方の型を満たす）
+
+#### 使用例
+```typescript
+interface User {
+  name?: string;
+  age?: number;
+  email?: string;
+}
+
+// nameとemailを必須にする
+type RequiredUser = RequiredFields<User, 'name' | 'email'>;
+// 結果: { name: string; email: string; age?: number; }
+```
+
+---
+
+### Q10: ジェネリック型について
+
+**A:** 関数にジェネリック型を付けることで、関数呼び出し時に関数内で使う型を指定できます。
+
+#### 基本的な使用方法
+```typescript
+function identity<T>(value: T): T {
+  return value;
+}
+
+// 呼び出し時に型を指定
+const stringResult = identity<string>("hello");  // T = string
+const numberResult = identity<number>(42);       // T = number
+
+// 型推論による自動指定（推奨）
+const result = identity("hello");  // T は自動的に string に推論
+```
+
+#### 静的ジェネリックメソッド
+```typescript
+class GeometryFactory {
+  static create<T extends GeometryType>(type: T): GeometryInstance<T> {
+    // 実装
+  }
+}
+
+// 使用例
+const boxGeo = GeometryFactory.create('box');     // THREE.BoxGeometry型
+```
+
+---
+
+### Q11: Extract型について
+
+**A:** Extract型は「Union版Pick」として理解できる型です。
+
+#### 基本構文
+```typescript
+Extract<T, U>  // Union型TからUに代入可能な型のみを抽出
+```
+
+#### Pick vs Extract
+```typescript
+// Pick: オブジェクトから指定プロパティを選択
+type UserName = Pick<User, 'name'>;
+// 結果: { name: string }
+
+// Extract: Union型から条件に一致する型を選択
+type BoxConfig = Extract<GeometryConfig, { type: 'box' }>;
+// 結果: { type: 'box'; config: BoxGeometryConfig }
+```
+
+#### 実際の使用例
+```typescript
+type GeometryConfig = 
+  | { type: 'box'; config: BoxGeometryConfig }
+  | { type: 'sphere'; config: SphereGeometryConfig };
+
+// 'box'タイプのみ抽出
+type BoxOnly = Extract<GeometryConfig, { type: 'box' }>;
+// 結果: { type: 'box'; config: BoxGeometryConfig }
+```
+
+---
+
+### Q12: インデックスアクセス型について
+
+**A:** `Type['property']`の構文で、型の特定プロパティの型を取得できます。
+
+#### 基本的な使用例
+```typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+// プロパティの型を取得
+type UserId = User['id'];       // number
+type UserName = User['name'];   // string
+```
+
+#### Extract + インデックスアクセス
+```typescript
+Extract<GeometryConfig, {type: T}>['config']
+// 1. Extract<GeometryConfig, {type: 'box'}> → { type: 'box'; config: BoxGeometryConfig }
+// 2. ['config'] → BoxGeometryConfig
+```
+
+#### 実際の使用パターン
+```typescript
+function createGeometry<T extends GeometryType>(
+  type: T,
+  config: Extract<GeometryConfig, {type: T}>['config']
+) {
+  // configの型はTに応じて自動的に決まる
+}
+```
+
+---
+
+### Q13: 配列型記法について
+
+**A:** `Type[]`は配列型を表し、Extract結果にも適用できます。
+
+#### 基本的な配列型
+```typescript
+string[]     // 文字列の配列
+number[]     // 数値の配列
+```
+
+#### Extract結果の配列
+```typescript
+type BoxConfigArray = Extract<GeometryConfig, { type: 'box' }>[];
+// 結果: { type: 'box'; config: BoxGeometryConfig }[]
+```
+
+#### Array<T>との比較
+```typescript
+// 同じ意味
+type StringArray1 = string[];
+type StringArray2 = Array<string>;
+```
+
+---
+
+### Q14: 関数パラメータでの型推論とデフォルト値について
+
+**A:** 型に基づいて動的に決まる設定オブジェクトにデフォルト値を設定できます。
+
+#### 基本例
+```typescript
+config: Extract<GeometryConfig, {type: T}>['config'] = {}
+```
+
+#### 動作の流れ
+```typescript
+// T = 'box'の場合
+// 1. Extract<GeometryConfig, {type: 'box'}>['config'] → BoxGeometryConfig
+// 2. デフォルト値 {} は BoxGeometryConfig に代入可能（全プロパティがオプショナル）
+```
+
+#### 使用例
+```typescript
+// デフォルト値を使用
+const box1 = createGeometry('box');  // config = {}
+
+// 設定値を指定
+const box2 = createGeometry('box', { width: 2, height: 3 });
+```
+
+---
+
 ## 🔗 関連リンク
 
 - [MDN - Canvas API](https://developer.mozilla.org/ja/docs/Web/API/Canvas_API)
 - [Three.js 公式ドキュメント](https://threejs.org/docs/)
 - [TypeScript 公式ドキュメント](https://www.typescriptlang.org/docs/)
+- [TypeScript Utility Types](https://www.typescriptlang.org/docs/handbook/utility-types.html)
