@@ -469,6 +469,118 @@ const box2 = createGeometry('box', { width: 2, height: 3 });
 
 ---
 
+### Q15: never型と網羅性チェック（Exhaustiveness Checking）について
+
+**A:** never型は「決して発生しない値」を表す型で、TypeScriptの網羅性チェックに活用されます。
+
+#### never型の基本
+```typescript
+// never型は何も代入できない
+const value1: never = "hello";  // ❌ Error
+const value2: never = 42;       // ❌ Error
+const value3: never = true;     // ❌ Error
+
+// 関数がneverを返すケース
+function throwError(): never {
+  throw new Error("エラー");
+  // この関数は決して正常終了しない
+}
+```
+
+#### 網羅性チェックでの活用
+```typescript
+type GeometryType = 'box' | 'sphere' | 'cone' | 'cylinder';
+
+function createGeometry<T extends GeometryType>(type: T) {
+  switch (type) {
+    case 'box':
+      return new THREE.BoxGeometry();
+    case 'sphere':
+      return new THREE.SphereGeometry();
+    // 'cone' と 'cylinder' が欠けている
+    default:
+      const _exhaustiveCheck: never = type;
+      // ❌ Error: Type 'cone' | 'cylinder' is not assignable to type 'never'
+      throw new Error(`Unknown geometry type: ${_exhaustiveCheck}`);
+  }
+}
+```
+
+#### なぜエラーになるのか
+1. **switch文で全てのケースを処理していない**
+2. **defaultに到達時、typeはまだ未処理の型（'cone' | 'cylinder'）を持っている**
+3. **never型は何も代入できない**ため、未処理の型があるとコンパイルエラー
+4. **コンパイル時に処理漏れを発見**できる
+
+#### 修正方法
+
+**1. 全てのケースを追加**
+```typescript
+function createGeometry<T extends GeometryType>(type: T) {
+  switch (type) {
+    case 'box':
+      return new THREE.BoxGeometry();
+    case 'sphere':
+      return new THREE.SphereGeometry();
+    case 'cone':              // ← 追加
+      return new THREE.ConeGeometry();
+    case 'cylinder':          // ← 追加
+      return new THREE.CylinderGeometry();
+    default:
+      const _exhaustiveCheck: never = type; // ✅ OK
+      throw new Error(`Unknown geometry type: ${_exhaustiveCheck}`);
+  }
+}
+```
+
+**2. _exhaustiveCheckを削除**
+```typescript
+function createGeometry<T extends GeometryType>(type: T) {
+  switch (type) {
+    case 'box':
+      return new THREE.BoxGeometry();
+    case 'sphere':
+      return new THREE.SphereGeometry();
+    default:
+      // _exhaustiveCheck を削除
+      throw new Error(`Unknown geometry type: ${type}`);
+  }
+}
+```
+
+#### 利点：型安全性の向上
+```typescript
+// 新しいジオメトリタイプを追加
+type GeometryType = 'box' | 'sphere' | 'cone' | 'cylinder' | 'torus'; // ← 'torus' 追加
+
+// _exhaustiveCheck があると、コンパイルエラーで気づける
+function createGeometry<T extends GeometryType>(type: T) {
+  switch (type) {
+    case 'box':
+      return new THREE.BoxGeometry();
+    case 'sphere':
+      return new THREE.SphereGeometry();
+    case 'cone':
+      return new THREE.ConeGeometry();
+    case 'cylinder':
+      return new THREE.CylinderGeometry();
+    // 'torus' ケースがない
+    default:
+      const _exhaustiveCheck: never = type;
+      // Error: Type 'torus' is not assignable to type 'never'
+      // ← 'torus' ケースを追加し忘れていることがわかる
+  }
+}
+```
+
+#### まとめ
+- **never型**: 決して発生しない値を表す型
+- **_exhaustiveCheck**: 全てのケースを処理したかをコンパイル時にチェック
+- **エラーの原因**: 未処理のケースがあると、そのUnion型はneverに代入できない
+- **利点**: 型の追加や変更時に処理漏れを自動的に発見
+
+---
+
 ## 🔗 関連リンク
 
 - [MDN - Canvas API](https://developer.mozilla.org/ja/docs/Web/API/Canvas_API)
